@@ -1,0 +1,19 @@
+{
+  "name": "untemplate",
+  "version": "0.0.0",
+  "description": "A node.js package that uses templates to extract structured info from HTML.",
+  "main": "src/untemplate.js",
+  "author": "Anthony Liu",
+  "license": "MIT",
+  "scripts": {
+    "test": "jasmine"
+  },
+  "devDependencies": {
+    "babel-preset-env": "^1.5.2",
+    "babel-register": "^6.24.1",
+    "jasmine": "^2.6.0"
+  },
+  "dependencies": {
+    "xmldom": "^0.1.27"
+  }
+}
