@@ -1,16 +1,16 @@
 import { DOMParser } from 'xmldom';
-import { extract } from '../src/untemplate.js';
+import { untemplate } from '../src/untemplate.js';
 
 function getDomFromHtml(html) {
   return (new DOMParser()).parseFromString(html.trim(), 'text/xml').firstChild;
 }
 
 describe ('scraper',  () => {
-  describe ('#extract',  () => {
+  describe ('#untemplate',  () => {
     it ('should match simple exact templates',  () => {
       let page = getDomFromHtml('<div> hello </div>');
       let template = '<div> {{ greeting }} </div>';
-      let structuredData = extract(template, page);
+      let structuredData = untemplate(template, page);
 
       expect(structuredData.length).toEqual(1);
       expect(structuredData[0]).toEqual({greeting: 'hello'});
@@ -19,7 +19,7 @@ describe ('scraper',  () => {
     it ('should match single element templates with some depth',  () => {
       let page = getDomFromHtml('<div><span> goodbye </span></div>');
       let template = '<span> {{ farewell }} </span>';
-      let structuredData = extract(template, page);
+      let structuredData = untemplate(template, page);
 
       expect(structuredData.length).toEqual(1);
       expect(structuredData[0]).toEqual({farewell: 'goodbye'});
@@ -33,7 +33,7 @@ describe ('scraper',  () => {
         </ul>
       `);
       let template = '<li> {{ food }} </li>';
-      let structuredData = extract(template, page);
+      let structuredData = untemplate(template, page);
 
       expect(structuredData.length).toEqual(2);
       expect(structuredData[0]).toEqual({food: 'lasagna'});
@@ -55,7 +55,7 @@ describe ('scraper',  () => {
         </div>
       `);
       let template = '<a> {{ linkName }} </a>';
-      let structuredData = extract(template, page);
+      let structuredData = untemplate(template, page);
 
       expect(structuredData.length).toEqual(3);
       expect(structuredData[0]).toEqual({linkName: 'google'});
@@ -82,7 +82,7 @@ describe ('scraper',  () => {
           <textarea> {{ value }} </textarea>
         </header>
       `;
-      let structuredData = extract(template, page);
+      let structuredData = untemplate(template, page);
 
       expect(structuredData.length).toEqual(1);
       expect(structuredData[0]).toEqual({
@@ -107,7 +107,7 @@ describe ('scraper',  () => {
           {{ content }}
         </div>
       `;
-      let structuredData = extract(template, page);
+      let structuredData = untemplate(template, page);
 
       expect(structuredData.length).toEqual(1);
       expect(structuredData[0]).toEqual({
@@ -130,7 +130,7 @@ describe ('scraper',  () => {
           <h1> {{ title }} </h1>
         </div>
       `;
-      let structuredData = extract(template, page);
+      let structuredData = untemplate(template, page);
 
       expect(structuredData.length).toEqual(1);
       expect(structuredData[0]).toEqual({
@@ -162,7 +162,7 @@ describe ('scraper',  () => {
           <li> {{ second }} </li>
         </ul>
       `;
-      let structuredData = extract(template, page);
+      let structuredData = untemplate(template, page);
 
       expect(structuredData.length).toEqual(2);
       expect(structuredData[0]).toEqual({ first: 'alpha', second: 'beta' });
@@ -186,7 +186,7 @@ describe ('scraper',  () => {
           <li> {{ fruits }} </li>
         </ul>
       `;
-      let structuredData = extract(template, page);
+      let structuredData = untemplate(template, page);
 
       expect(structuredData.length).toEqual(1);
       expect(structuredData[0]).toEqual({
@@ -215,7 +215,7 @@ describe ('scraper',  () => {
           <div optional="true"> {{ degree }}</div>
         </li>
       `;
-      let structuredData = extract(template, page);
+      let structuredData = untemplate(template, page);
 
       expect(structuredData.length).toEqual(2);
       expect(structuredData[0]).toEqual({
@@ -252,7 +252,7 @@ describe ('scraper',  () => {
           <div optional="true"> {{ features }} </div>
         </div>
       `;
-      let structuredData = extract(template, page);
+      let structuredData = untemplate(template, page);
 
       expect(structuredData.length).toEqual(2);
       expect(structuredData[0]).toEqual({
@@ -288,7 +288,7 @@ describe ('scraper',  () => {
           </div>
         </div>
       `;
-      let structuredData = extract(template, page);
+      let structuredData = untemplate(template, page);
 
       expect(structuredData.length).toEqual(2);
       expect(structuredData[0]).toEqual({
@@ -321,7 +321,7 @@ describe ('scraper',  () => {
           <button?> {{ buttonValue }} </button>
         </div>
       `;
-      let structuredData = extract(template, page);
+      let structuredData = untemplate(template, page);
 
       expect(structuredData.length).toEqual(2);
       expect(structuredData[0]).toEqual({
@@ -348,7 +348,7 @@ describe ('scraper',  () => {
       let template = `
         <span> {{ content }} </span>
       `;
-      let structuredData = extract(template, page);
+      let structuredData = untemplate(template, page);
 
       expect(structuredData.length).toEqual(1);
       expect(structuredData[0]).toEqual({
@@ -378,7 +378,7 @@ describe ('scraper',  () => {
           <li> {{ bio }} </li>
         </ul>
       `;
-      let structuredData = extract(template, page);
+      let structuredData = untemplate(template, page);
 
       expect(structuredData.length).toEqual(0);
     });
@@ -396,7 +396,7 @@ describe ('scraper',  () => {
           <div> {{ content }} </li>
         </div>
       `;
-      let structuredData = extract(template, page);
+      let structuredData = untemplate(template, page);
 
       expect(structuredData.length).toEqual(0);
     });
