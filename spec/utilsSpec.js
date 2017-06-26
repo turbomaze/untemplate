@@ -1,6 +1,53 @@
-import { parseHtml, isElement, isTextNode, isOptional } from '../src/utils';
+import {
+  getNonEmptyChildren,
+  parseHtml, isElement, isTextNode, isOptional
+} from '../src/utils';
 
 describe ('untemplate',  () => {
+  describe ('#getNonEmptyChildren',  () => {
+    it ('should return an empty array when there are no children',  () => {
+      const html = '<div></div>';
+      const dom = parseHtml(html);
+      expect(dom.childNodes.length).toEqual(0);
+      expect(getNonEmptyChildren(dom)).toEqual([]);
+    });
+
+    it ('should an empty array when all children are empty',  () => {
+      const html = '<span>   \n\n\n\t\t  </span>';
+      const dom = parseHtml(html);
+      expect(dom.childNodes.length).toEqual(1);
+      expect(getNonEmptyChildren(dom)).toEqual([]);
+    });
+
+    it ('should child nodes when there are some',  () => {
+      const html = '<ul><li></li><li></li></ul>';
+      const dom = parseHtml(html);
+      const nonEmptyChildren = getNonEmptyChildren(dom);
+      expect(nonEmptyChildren.length).toEqual(2);
+      expect(nonEmptyChildren[0].tagName.toLowerCase()).toEqual('li');
+      expect(nonEmptyChildren[1].tagName.toLowerCase()).toEqual('li');
+    });
+
+    it ('should skip over empty text nodes',  () => {
+      const html = '<ul>\t\n<li></li> \n\n \t\t  \n\n<li></li> \n\n\t \t</ul>';
+      const dom = parseHtml(html);
+      const nonEmptyChildren = getNonEmptyChildren(dom);
+      expect(nonEmptyChildren.length).toEqual(2);
+      expect(nonEmptyChildren[0].tagName.toLowerCase()).toEqual('li');
+      expect(nonEmptyChildren[1].tagName.toLowerCase()).toEqual('li');
+    });
+
+    it ('should not skip over nonempty textnodes',  () => {
+      const html = '<header>nonempty<div></div></header>';
+      const dom = parseHtml(html);
+      const nonEmptyChildren = getNonEmptyChildren(dom);
+      expect(nonEmptyChildren.length).toEqual(2);
+      expect(isTextNode(nonEmptyChildren[0])).toEqual(true);
+      expect(nonEmptyChildren[0].nodeValue).toEqual('nonempty');
+      expect(nonEmptyChildren[1].tagName.toLowerCase()).toEqual('div');
+    });
+  });
+
   // NOTE: *white-box testing for #parseHtml*
   // - implementation just calls external library; don't duplicate work of testing
   //   an HTML parser

@@ -1,5 +1,8 @@
 import { DOMParser } from 'xmldom';
-import { parseHtml, isElement, isTextNode, isOptional } from './utils'
+import {
+  getNonEmptyChildren,
+  parseHtml, isElement, isTextNode, isOptional
+} from './utils';
 
 // preconditions:
 // - dsl is a well-formatted template string
@@ -219,13 +222,6 @@ function inorder(tree) {
       .concat(cloneTree(tree))
       .concat(inorder(tree.children[1]));
   }
-}
-
-function getNonEmptyChildren(element) {
-  return Array.from(element.childNodes || []).filter((child) => {
-    const isNonEmptyText = isTextNode(child) && child.nodeValue.trim() !== '';
-    return isElement(child) || isNonEmptyText;
-  });
 }
 
 function intersect(a, b) {
