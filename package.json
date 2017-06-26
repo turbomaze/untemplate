@@ -2,7 +2,7 @@
   "name": "untemplate",
   "version": "0.0.0",
   "description": "A node.js package that uses templates to extract structured info from HTML.",
-  "main": "src/untemplate.js",
+  "main": "src/index.js",
   "author": "Anthony Liu",
   "license": "MIT",
   "scripts": {

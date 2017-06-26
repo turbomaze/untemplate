@@ -13,7 +13,7 @@ const TEXT_NODE = DIV.firstChild.nodeType;
 // - return list of assoc arrays from template properties to values
 export function untemplate (dsl, element) {
   const desugaredDsl = desugar(dsl);
-  const template = PARSER.parseFromString(desugaredDsl, 'text/xml').firstChild;
+  const template = PARSER.parseFromString(desugaredDsl.trim(), 'text/xml').firstChild;
   return find(template, element);
 }
 

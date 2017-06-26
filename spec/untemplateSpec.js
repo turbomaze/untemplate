@@ -1,11 +1,11 @@
 import { DOMParser } from 'xmldom';
-import { untemplate } from '../src/untemplate.js';
+import { untemplate } from '../src/index.js';
 
 function getDomFromHtml(html) {
   return (new DOMParser()).parseFromString(html.trim(), 'text/xml').firstChild;
 }
 
-describe ('scraper',  () => {
+describe ('untemplate',  () => {
   describe ('#untemplate',  () => {
     it ('should match simple exact templates',  () => {
       let page = getDomFromHtml('<div> hello </div>');
