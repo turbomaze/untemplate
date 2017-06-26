@@ -1,10 +1,5 @@
 import { DOMParser } from 'xmldom';
-
-// constants
-const PARSER = new DOMParser();
-const DIV = PARSER.parseFromString('<div> text </div>').firstChild;
-const ELEMENT_NODE = DIV.nodeType;
-const TEXT_NODE = DIV.firstChild.nodeType;
+import { parseHtml, isElement, isTextNode, isOptional } from './utils'
 
 // preconditions:
 // - dsl is a well-formatted template string
@@ -13,7 +8,7 @@ const TEXT_NODE = DIV.firstChild.nodeType;
 // - return list of assoc arrays from template properties to values
 export function untemplate (dsl, element) {
   const desugaredDsl = desugar(dsl);
-  const template = PARSER.parseFromString(desugaredDsl.trim(), 'text/xml').firstChild;
+	const template = parseHtml(desugaredDsl);
   return find(template, element);
 }
 
@@ -269,18 +264,6 @@ function shallowCloneTree(tree) {
   const clone = {};
   for (const k in tree) clone[k] = tree[k];
   return clone;
-}
-
-function isElement(element) {
-  return element.nodeType === ELEMENT_NODE;
-}
-
-function isTextNode(element) {
-  return element.nodeType === TEXT_NODE;
-}
-
-function isOptional(element) {
-  return element.getAttribute('optional') === 'true';
 }
 
 function isHidden(element) {
