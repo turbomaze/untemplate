@@ -1,10 +1,54 @@
 import { _ } from 'lodash';
 import {
-  parseTemplate, getNonEmptyChildren, number,
+  templatesMatch, parseTemplate, getNonEmptyChildren, number,
   parseHtml, isElement, isTextNode, isOptional
 } from '../src/utils';
 
 describe ('untemplate',  () => {
+  describe ('#templatesMatch',  () => {
+    it ('should accept identical templates',  () => { 
+      const template1 = parseTemplate('<div><span></span></div>');
+      const template2 = parseTemplate('<div><span></span></div>');
+      const matches = templatesMatch(template1, template2);
+      expect(matches).toEqual(true);
+    });
+
+    it ('should accept templates that differ in whitespace',  () => { 
+      const template1 = parseTemplate('<div>\t\t\t<span></span>  </div>');
+      const template2 = parseTemplate('<div><span>\n\n\n   </span></div>');
+      const matches = templatesMatch(template1, template2);
+      expect(matches).toEqual(true);
+    });
+
+    it ('should reject templates that differ in text content',  () => { 
+      const template1 = parseTemplate('<div>\t\t\t<span> hello </span>  </div>');
+      const template2 = parseTemplate('<div><span>\n\n\n   </span></div>');
+      const matches = templatesMatch(template1, template2);
+      expect(matches).toEqual(false);
+    });
+
+    it ('should accept templates that have the same trimmed text content',  () => { 
+      const template1 = parseTemplate('<div><span></span><a>  123  </a></div>');
+      const template2 = parseTemplate('<div><span></span><a>123</a></div>');
+      const matches = templatesMatch(template1, template2);
+      expect(matches).toEqual(true);
+    });
+
+    it ('should accept templates that include the same optionals',  () => { 
+      const template1 = parseTemplate('<div><span></span><a?></a></div>');
+      const template2 = parseTemplate('<div><span></span><a optional="true"></a></div>');
+      const matches = templatesMatch(template1, template2);
+      expect(matches).toEqual(true);
+    });
+
+    it ('should reject templates with different optionals',  () => { 
+      const template1 = parseTemplate('<div><span?></span><a?></a></div>');
+      const template2 = parseTemplate('<div><span></span><a optional="true"></a></div>');
+      const matches = templatesMatch(template1, template2);
+      expect(matches).toEqual(false);
+    });
+  });
+
   // NOTE: *white-box testing for #parseTemplate*
   // - implementation just calls #parseHtml; don't duplicate work of testing it
   // - the dsl is basically just html at this point
@@ -14,46 +58,46 @@ describe ('untemplate',  () => {
       const dsl = '<div><span></span></div>';
       const template = parseTemplate(dsl);
       expect(template.tagName).toEqual('div');
-      expect(template.getAttribute('optional')).not.toEqual('true');
+      expect(isOptional(template)).not.toEqual(true);
       expect(template.childNodes.length).toEqual(1);
       expect(template.childNodes[0].tagName).toEqual('span');
-      expect(template.childNodes[0].getAttribute('optional')).not.toEqual('true');
+      expect(isOptional(template.childNodes[0])).not.toEqual(true);
     });
 
     it ('should parse templates with verbose optional syntax', () => {
       const dsl = '<ul><li></li><li optional="true"></li></ul>';
       const template = parseTemplate(dsl);
       expect(template.tagName).toEqual('ul');
-      expect(template.getAttribute('optional')).not.toEqual('true');
+      expect(isOptional(template)).not.toEqual(true);
       expect(template.childNodes.length).toEqual(2);
       expect(template.childNodes[0].tagName).toEqual('li');
-      expect(template.childNodes[0].getAttribute('optional')).not.toEqual('true');
+      expect(isOptional(template.childNodes[0])).not.toEqual(true);
       expect(template.childNodes[1].tagName).toEqual('li');
-      expect(template.childNodes[1].getAttribute('optional')).toEqual('true');
+      expect(isOptional(template.childNodes[1])).toEqual(true);
     });
 
     it ('should parse templates with shorthand optional syntax', () => {
       const dsl = '<ul><li></li><li?></li></ul>';
       const template = parseTemplate(dsl);
       expect(template.tagName).toEqual('ul');
-      expect(template.getAttribute('optional')).not.toEqual('true');
+      expect(isOptional(template)).not.toEqual(true);
       expect(template.childNodes.length).toEqual(2);
       expect(template.childNodes[0].tagName).toEqual('li');
-      expect(template.childNodes[0].getAttribute('optional')).not.toEqual('true');
+      expect(isOptional(template.childNodes[0])).not.toEqual(true);
       expect(template.childNodes[1].tagName).toEqual('li');
-      expect(template.childNodes[1].getAttribute('optional')).toEqual('true');
+      expect(isOptional(template.childNodes[1])).toEqual(true);
     });
 
     it ('should support nested optionals', () => {
       const dsl = '<section?><div></div><span?></span></section>';
       const template = parseTemplate(dsl);
       expect(template.tagName).toEqual('section');
-      expect(template.getAttribute('optional')).toEqual('true');
+      expect(isOptional(template)).toEqual(true);
       expect(template.childNodes.length).toEqual(2);
       expect(template.childNodes[0].tagName).toEqual('div');
-      expect(template.childNodes[0].getAttribute('optional')).not.toEqual('true');
+      expect(isOptional(template.childNodes[0])).not.toEqual(true);
       expect(template.childNodes[1].tagName).toEqual('span');
-      expect(template.childNodes[1].getAttribute('optional')).toEqual('true');
+      expect(isOptional(template.childNodes[1])).toEqual(true);
     });
   });
 
