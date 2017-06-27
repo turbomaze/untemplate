@@ -17,6 +17,7 @@
     "webpack": "^3.0.0"
   },
   "dependencies": {
+    "js-combinatorics": "^0.5.2",
     "lodash": "^4.17.4",
     "xmldom": "^0.1.27"
   }

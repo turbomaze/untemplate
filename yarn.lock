@@ -1521,6 +1521,10 @@ jasmine@^2.6.0:
     glob "^7.0.6"
     jasmine-core "~2.6.0"
 
+js-combinatorics@^0.5.2:
+  version "0.5.2"
+  resolved "https://registry.yarnpkg.com/js-combinatorics/-/js-combinatorics-0.5.2.tgz#f060749232ea1b770076ff97aed6cfa9ab41b8f4"
+
 js-tokens@^3.0.0:
   version "3.0.1"
   resolved "https://registry.yarnpkg.com/js-tokens/-/js-tokens-3.0.1.tgz#08e9f132484a2c45a30907e9dc4d5567b7f114d7"

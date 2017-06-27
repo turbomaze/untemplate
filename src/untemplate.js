@@ -1,6 +1,7 @@
 import { DOMParser } from 'xmldom';
+import { _ } from 'lodash';
 import {
-  getNonEmptyChildren,
+  getNonEmptyChildren, number,
   parseHtml, isElement, isTextNode, isOptional
 } from './utils';
 
@@ -82,7 +83,7 @@ function findInArray(needle, haystack) {
         break;
       } else if (needle[j].index === 0) rootMatch = haystack[i + j];
     }
-    if (matched) matches[rootMatch.index] = cloneTree(rootMatch);
+    if (matched) matches[rootMatch.index] = _.cloneDeep(rootMatch);
   }
   return matches;
 }
@@ -142,24 +143,10 @@ function annotateTree (element) {
   }
 }
 
-// postcondition: return new tree with same nodes but numbered on the `index` key
-//                nodes are numbered 'in order' by height and then left-to-right
-function number(tree) {
-  const numberedTree = cloneTree(tree);
-  let index = 0;
-  let stack = [numberedTree];
-  while (stack.length > 0) {
-    const node = stack.shift();
-    node.index = index++;
-    stack = (node.children || []).concat(stack);
-  }
-  return numberedTree;
-}
-
 // precondition: tree is a binary tree
 // postcondition: all nodes have a height
 function measure(tree) {
-  const measuredTree = shallowCloneTree(tree);
+  const measuredTree = _.clone(tree);
   const kids = (measuredTree.children || []).map(measure);
   measuredTree.children = kids;
   measuredTree.height = 1 + getChildrenHeight(kids);
@@ -168,12 +155,12 @@ function measure(tree) {
 
 function forceBinary (children) {
   if (children.length === 1) {
-    return [cloneTree(children[0]), { type: '0' }];
+    return [_.cloneDeep(children[0]), { type: '0' }];
   } else if (children.length > 2) {
     const rightTree = forceBinary(children.slice(1));
-    return [cloneTree(children[0]), { type: '*', children: rightTree }];
+    return [_.cloneDeep(children[0]), { type: '*', children: rightTree }];
   } else {
-    return children.map(cloneTree);
+    return children.map(_.cloneDeep);
   }
 }
 
@@ -206,20 +193,20 @@ function nodesMatch(templateNode, elementNode) {
 
 function preorder(tree) {
   if (!tree.children || tree.children.length === 0) {
-    return [cloneTree(tree)];
+    return [_.cloneDeep(tree)];
   } else {
     return tree.children.reduce((arr, value) => {
       return arr.concat(preorder(value));
-    }, [cloneTree(tree)]);
+    }, [_.cloneDeep(tree)]);
   }
 }
 
 function inorder(tree) {
   if (!tree.children || tree.children.length === 0) {
-    return [cloneTree(tree)];
+    return [_.cloneDeep(tree)];
   } else {
     return inorder(tree.children[0])
-      .concat(cloneTree(tree))
+      .concat(_.cloneDeep(tree))
       .concat(inorder(tree.children[1]));
   }
 }
@@ -246,20 +233,6 @@ function addProperty(state, key, value) {
   } else {
     state[key] = value;
   }
-}
-
-function cloneTree(tree) {
-  const clone = {};
-  for (const k in tree) {
-    clone[k] = Array.isArray(tree[k]) ? tree[k].map(cloneTree) : tree[k];
-  }
-  return clone;
-}
-
-function shallowCloneTree(tree) {
-  const clone = {};
-  for (const k in tree) clone[k] = tree[k];
-  return clone;
 }
 
 function isHidden(element) {
