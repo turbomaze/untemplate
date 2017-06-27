@@ -18,6 +18,7 @@ export function deduceTemplate(examples) {
     const deducedStructure = reconcileTrees(trees).tree;
     const structureWithAllProperties = treeWithPropertySelectors(deducedStructure);
     const maximalDsl = convertTreeToString(structureWithAllProperties);
+    console.log(maximalDsl);
     const exampleValues = examples.map((ex) => {
       return untemplate(maximalDsl, parseHtml(ex));
     });
@@ -29,6 +30,7 @@ export function deduceTemplate(examples) {
       structureWithAllProperties, consolidatedValues
     );
     const dsl = convertTreeToString(template);
+    console.log(dsl);
     return dsl;
   } catch (e) {
     if (e.name === 'UnresolveableExamplesError') {
@@ -232,12 +234,12 @@ function convertTreeToString(tree) {
   if (tree.type === 'text') {
     return tree.value;
   } else {
-    const start = `<${tree.type + (tree.optional ? '?' : '')}>`;
+    const start = `\n<${tree.type + (tree.optional ? '?' : '')}>\n`;
     const end = `</${tree.type}>`;
     const children = tree.children.reduce((concatenation, child) => {
       return concatenation + convertTreeToString(child);
-    }, '');
-    return start + children + end;
+    }, '').replace(/^/g, '  ').replace(/\n/g, '\n  ') + '\n';
+    return start + children + end + '\n';
   }
 }
 
