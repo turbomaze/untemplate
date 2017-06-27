@@ -67,8 +67,8 @@ describe ('untemplate',  () => {
       const template = parseTemplate(templateString);
       const expectedTemplate = parseTemplate(`
         <div>
-          <span> example 2 </span>
-          <span optional="true"><div> example 1,example 3 </div></span>
+          <span optional="true"> example 2 </span>
+          <span><div> example 1,example 3 </div></span>
         </div>
       `);
       expect(templatesMatch(expectedTemplate, template)).toEqual(true);
@@ -85,8 +85,8 @@ describe ('untemplate',  () => {
       const template = parseTemplate(templateString);
       const expectedTemplate = parseTemplate(`
         <div>
-          <span> example 2 </span>
-          <span optional="true"><div> example 1,example 3 </div></span>
+          <span optional="true"> example 2 </span>
+          <span><div> example 3,example 1 </div></span>
         </div>
       `);
       expect(templatesMatch(expectedTemplate, template)).toEqual(true);

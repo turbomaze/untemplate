@@ -76,6 +76,8 @@ function reconcileTrees(trees) {
     return {tree: trees[0], loss: 0};
   } else if (trees.length !== 2) {
     throw new UnresolveableExamplesError();
+  } else if (trees[0].children > trees[1].children) {
+    return reconcileTrees([trees[1], trees[0]]);
   }
 
   // low hanging fruit
@@ -108,6 +110,8 @@ function reconcileTrees(trees) {
 function getLoss(A, B) {
   if (A.children.length > B.children.length) {
     return getLoss(B, A);
+  } else if (A.children.length === B.children.length) {
+    return {loss: 0, choice: []};
   }
 
   const numOptionals = B.children.length - A.children.length;
@@ -117,6 +121,7 @@ function getLoss(A, B) {
   let choice = optionalChoices.next();
   let minLoss = null;
   let bestChoice = null;
+  const foo = Math.random() + ' -- ';
   while (choice) {
     const loss = getSpecificLoss(A, B, choice);
     if (minLoss === null || loss <= minLoss) {
