@@ -17,6 +17,7 @@
     "webpack": "^3.0.0"
   },
   "dependencies": {
+    "lodash": "^4.17.4",
     "xmldom": "^0.1.27"
   }
 }

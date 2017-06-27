@@ -1,4 +1,5 @@
 import { DOMParser } from 'xmldom';
+import { _ } from 'lodash';
 
 // constants
 const PARSER = new DOMParser();
@@ -11,6 +12,19 @@ export function getNonEmptyChildren(element) {
     const isNonEmptyText = isTextNode(child) && child.nodeValue.trim() !== '';
     return isElement(child) || isNonEmptyText;
   });
+}
+
+// postcondition: return new tree with same nodes but numbered on the `index` key
+export function number(tree) {
+  const numberedTree = _.cloneDeep(tree);
+  let index = 0;
+  let stack = [numberedTree];
+  while (stack.length > 0) {
+    const node = stack.shift();
+    node.index = index++;
+    stack = (node.children || []).concat(stack);
+  }
+  return numberedTree;
 }
 
 export function parseHtml(html) {

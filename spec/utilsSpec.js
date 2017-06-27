@@ -1,5 +1,6 @@
+import { _ } from 'lodash';
 import {
-  getNonEmptyChildren,
+  getNonEmptyChildren, number,
   parseHtml, isElement, isTextNode, isOptional
 } from '../src/utils';
 
@@ -45,6 +46,37 @@ describe ('untemplate',  () => {
       expect(isTextNode(nonEmptyChildren[0])).toEqual(true);
       expect(nonEmptyChildren[0].nodeValue).toEqual('nonempty');
       expect(nonEmptyChildren[1].tagName.toLowerCase()).toEqual('div');
+    });
+  });
+
+  describe ('#number',  () => {
+    it ('should number nodes with no children',  () => {
+      const tree = {};
+      const numbered = number(tree);
+      const expected = {index: 0};
+      expect(_.isEqual(numbered, expected)).toEqual(true);
+    });
+
+    it ('should number nodes with one layer of children',  () => {
+      const tree = {children: [{}]};
+      const numbered = number(tree);
+      const expected = {index: 0, children: [{index: 1}]};
+      expect(_.isEqual(numbered, expected)).toEqual(true);
+    });
+
+    it ('should number nodes with multiple layers of children',  () => {
+      const tree = {children: [{children: [{}]}, {}]};
+      const numbered = number(tree);
+      const expected = {
+        children: [
+          {children: [{index: 2}], index: 1},
+          {index: 3}
+        ],
+        index: 0
+      };
+      console.log(numbered);
+      console.log(expected);
+      expect(_.isEqual(numbered, expected)).toEqual(true);
     });
   });
 
