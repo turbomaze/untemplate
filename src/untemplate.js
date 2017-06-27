@@ -11,7 +11,7 @@ import {
 // postconditions:
 // - return list of assoc arrays from template properties to values
 export function untemplate (dsl, element) {
-	const template = parseTemplate(dsl);
+  const template = parseTemplate(dsl);
   return find(template, element);
 }
 

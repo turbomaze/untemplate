@@ -15,7 +15,7 @@ describe ('untemplate',  () => {
       const templateString = deduceTemplate(examples);
       const template = parseTemplate(templateString);
       const expectedTemplate = parseTemplate(`
-        <div><span> ['example 1', 'example 2'] </span></div>
+        <div><span> example 1,example 2 </span></div>
       `);
       expect(templatesMatch(expectedTemplate, template)).toEqual(true);
     });
@@ -31,14 +31,14 @@ describe ('untemplate',  () => {
       const template = parseTemplate(templateString);
       const expectedTemplate = parseTemplate(`
         <div>
-          <span> ['example 1', 'example 2'] </span>
-          <div optional="true"> ['example 3'] </div>
+          <span> example 1,example 2 </span>
+          <div optional="true"> example 3 </div>
         </div>
       `);
       expect(templatesMatch(expectedTemplate, template)).toEqual(true);
     });
 
-    fit ('should assign optionals in BFS order',  () => {
+    it ('should assign optionals in BFS order',  () => {
       const examples = [`
           <div><span> example 1 </span></div>
         `, `
@@ -49,8 +49,8 @@ describe ('untemplate',  () => {
       const template = parseTemplate(templateString);
       const expectedTemplate = parseTemplate(`
         <div>
-          <span> ['example 1', 'example 2'] </span>
-          <span optional="true"> ['example 3'] </span>
+          <span> example 1,example 2 </span>
+          <span optional="true"> example 3 </span>
         </div>
       `);
       expect(templatesMatch(expectedTemplate, template)).toEqual(true);
@@ -67,8 +67,8 @@ describe ('untemplate',  () => {
       const template = parseTemplate(templateString);
       const expectedTemplate = parseTemplate(`
         <div>
-          <span> ['example 2'] </span>
-          <span optional="true"><div> ['example 1', 'example 3'] </div></span>
+          <span> example 2 </span>
+          <span optional="true"><div> example 1,example 3 </div></span>
         </div>
       `);
       expect(templatesMatch(expectedTemplate, template)).toEqual(true);
@@ -85,8 +85,8 @@ describe ('untemplate',  () => {
       const template = parseTemplate(templateString);
       const expectedTemplate = parseTemplate(`
         <div>
-          <span> ['example 2'] </span>
-          <span optional="true"><div> ['example 1', 'example 3'] </div></span>
+          <span> example 2 </span>
+          <span optional="true"><div> example 1,example 3 </div></span>
         </div>
       `);
       expect(templatesMatch(expectedTemplate, template)).toEqual(true);

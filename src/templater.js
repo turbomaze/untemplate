@@ -5,6 +5,7 @@ import {
   getNonEmptyChildren, number,
   parseHtml, isElement, isTextNode, isOptional
 } from './utils';
+import { untemplate } from './untemplate';
 
 // constants
 const SERIALIZER = new XMLSerializer();
@@ -14,12 +15,23 @@ export function deduceTemplate(examples) {
     return number(annotateTree(parseHtml(ex)));
   });
   try {
-    const deducedTemplateAndLoss = reconcileTrees(trees);
-    const dsl = convertTreeToString(deducedTemplateAndLoss.tree);
-    console.log(dsl);
+    const deducedStructure = reconcileTrees(trees).tree;
+    const structureWithAllProperties = treeWithPropertySelectors(deducedStructure);
+    const maximalDsl = convertTreeToString(structureWithAllProperties);
+    const exampleValues = examples.map((ex) => {
+      return untemplate(maximalDsl, parseHtml(ex));
+    });
+    const consolidatedValues = consolidateValues(exampleValues.map((value) => {
+      // assumption: maximalDsl matches exactly once in each example
+      return value[0];
+    }));
+    const template = insertValuesIntoProperties(
+      structureWithAllProperties, consolidatedValues
+    );
+    const dsl = convertTreeToString(template);
     return dsl;
   } catch (e) {
-    if (e instanceof UnresolveableExamplesError) {
+    if (e.name === 'UnresolveableExamplesError') {
       return false;
     } else {
       throw e;
@@ -53,11 +65,12 @@ function annotateTree (element) {
   }
 }
 
-// TODO:
-// - limitations
-//   - trees.length === 2
-//   - all nodes must have the same type
-// throws UnresolveableExamplesError if the supplied trees are irreconcilable
+// preconditions:
+// TODO: these preconditions are limitations
+// - trees.length === 2
+// postconditions:
+// - returns a tree
+// - throws UnresolveableExamplesError if the supplied trees are irreconcilable
 function reconcileTrees(trees) {
   if (trees.length === 1) {
     return {tree: trees[0], loss: 0};
@@ -88,9 +101,7 @@ function reconcileTrees(trees) {
         j++;
       }
     }
-    console.log(bestChoiceAndLoss);
-    console.log(bestChoiceAndLoss.loss);
-    return {tree: B, loss: bestChoiceAndLoss.loss};
+    return {tree: number(B), loss: bestChoiceAndLoss.loss};
   }
 }
 
@@ -107,9 +118,8 @@ function getLoss(A, B) {
   let minLoss = null;
   let bestChoice = null;
   while (choice) {
-    console.log(choice);
     const loss = getSpecificLoss(A, B, choice);
-    if (minLoss === null || loss < minLoss) {
+    if (minLoss === null || loss <= minLoss) {
       minLoss = loss;
       bestChoice = choice;
     }
@@ -156,13 +166,74 @@ function hasSameRoot(a, b) {
   return a.type === b.type;
 }
 
+// precondition: tree has no nodes of type 'text'
+function treeWithPropertySelectors(tree) {
+  const copy = _.clone(tree);
+  const children = [];
+  const base = `property-${copy.index}-`;
+  for (let i = 0; i < copy.children.length; i++) {
+    children.push({type: 'text', value: `{{ ${base + i} }}`});
+    children.push(treeWithPropertySelectors(copy.children[i]));
+  }
+  children.push({type: 'text', value: `{{ ${base + copy.children.length} }}`});
+  copy.children = children;
+  return copy;
+}
+
+function consolidateValues(values) {
+  const union = {};
+  values.forEach((value) => {
+    Object.keys(value).forEach((key) => {
+      if (!union.hasOwnProperty(key)) union[key] = [];
+      const valueToInsert = Array.isArray(value[key]) ? value[key] : [value[key]];
+      union[key].push(valueToInsert.join(', '));
+    })
+  });
+  return union;
+}
+
+// postconditions:
+// - throws NoPropertiesError if tree is a textnode whose property is not in values
+function insertValuesIntoProperties(tree, values) {
+  const copy = _.clone(tree);
+
+  if (copy.type === 'text') {
+    const keyMatch = copy.value.match(/{{(.+)}}/);
+    const keyName = !!keyMatch ? keyMatch[1].trim() : false;
+    if (values[keyName]) {
+      copy.value = values[keyName];
+      return copy;
+    } else {
+      throw new NoPropertiesError();
+    }
+  } else {
+    const children = [];
+    for (let i = 0; i < tree.children.length; i++) {
+      const child = tree.children[i];
+      try {
+        children.push(insertValuesIntoProperties(child, values));
+      } catch (e) {
+        if (e.name !==  'NoPropertiesError') {
+          throw e;
+        }
+      }
+    }
+    copy.children = children;
+    return copy;
+  }
+}
+
 function convertTreeToString(tree) {
-  const start = `<${tree.type + (tree.optional ? '?' : '')}>`;
-  const end = `</${tree.type}>`;
-  const children = tree.children.reduce((concatenation, child) => {
-    return concatenation + convertTreeToString(child);
-  }, '');
-  return start + children + end;
+  if (tree.type === 'text') {
+    return tree.value;
+  } else {
+    const start = `<${tree.type + (tree.optional ? '?' : '')}>`;
+    const end = `</${tree.type}>`;
+    const children = tree.children.reduce((concatenation, child) => {
+      return concatenation + convertTreeToString(child);
+    }, '');
+    return start + children + end;
+  }
 }
 
 function treeToDom(tree) {
@@ -178,6 +249,15 @@ function range(n) {
 class UnresolveableExamplesError extends Error {
   constructor(...args) {
     super(...args)
+    this.name = 'UnresolveableExamplesError';
     Error.captureStackTrace(this, UnresolveableExamplesError);
+  }
+}
+
+class NoPropertiesError extends Error {
+  constructor(...args) {
+    super(...args)
+    this.name = 'NoPropertiesError';
+    Error.captureStackTrace(this, NoPropertiesError);
   }
 }

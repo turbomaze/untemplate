@@ -170,8 +170,6 @@ describe ('untemplate',  () => {
         ],
         index: 0
       };
-      console.log(numbered);
-      console.log(expected);
       expect(_.isEqual(numbered, expected)).toEqual(true);
     });
   });
