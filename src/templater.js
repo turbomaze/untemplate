@@ -14,12 +14,16 @@ export function deduceTemplate(examples) {
     return number(annotateTree(parseHtml(ex)));
   });
   try {
-    const deducedTemplate = reconcileTrees(trees);
-    const dsl = convertTreeToString(deducedTemplate);
+    const deducedTemplateAndLoss = reconcileTrees(trees);
+    const dsl = convertTreeToString(deducedTemplateAndLoss.tree);
     console.log(dsl);
     return dsl;
   } catch (e) {
-    return false;
+    if (e instanceof UnresolveableExamplesError) {
+      return false;
+    } else {
+      throw e;
+    }
   }
 }
 
@@ -31,7 +35,11 @@ function annotateTree (element) {
   if (!isElement(element)) return false;
 
   if (!element.firstChild) {
-    return { type: element.tagName.toLowerCase(), numDescendants: 0 };
+    return {
+      type: element.tagName.toLowerCase(),
+      children: [],
+      numDescendants: 0
+    };
   } else {
     const children = getNonEmptyChildren(element).map(annotateTree)
       .filter((a) => { return !!a; });
@@ -49,12 +57,12 @@ function annotateTree (element) {
 // - limitations
 //   - trees.length === 2
 //   - all nodes must have the same type
-// throws UnresolveableExamplesException if the supplied trees are irreconcilable
+// throws UnresolveableExamplesError if the supplied trees are irreconcilable
 function reconcileTrees(trees) {
   if (trees.length === 1) {
     return {tree: trees[0], loss: 0};
   } else if (trees.length !== 2) {
-    throw new UnresolveableExamplesException(trees);
+    throw new UnresolveableExamplesError();
   }
 
   // low hanging fruit
@@ -63,49 +71,67 @@ function reconcileTrees(trees) {
   if (treesAreSame(A, B)) {
     return {tree: A, loss: 0};
   } else if (!hasSameRoot(A, B)) {
-    throw new UnresolveableExamplesException(trees);
+    throw new UnresolveableExamplesError();
   } else {
-    // same root, different children, begin reconciliation
-    if (A.children.length > B.children.length) {
-      // requires assumption that trees[1] has more children
-      return reconcileTrees([B, A]);
+    // much higher hanging fruit
+    const bestChoiceAndLoss = getLoss(A, B);
+    const choiceSet = {};
+    for (let i = 0; i < bestChoiceAndLoss.choice.length; i++) {
+      choiceSet[bestChoiceAndLoss.choice[i]] = true;
     }
-
-    const numOptionals = B.length - A.length;
-    const optionalChoices = Combinatorics.combination(B.children, numOptionals);
-    let choice = optionalChoices.next();
-    let minLoss = Infinity;
-    let bestChoice = null;
-    while (choice) {
-      const loss = getLoss(A, B, choice);
-      if (loss < minLoss) {
-        minLoss = loss;
-        bestChoice = choice;
+    for (let i = 0, j = 0; i < B.children.length; i++) {
+      if (choiceSet[i]) {
+        B.children[i].optional = true;
+      } else {
+        // invariant: |choiceSet| + A.children.length == B.children.length
+        B.children[i] = reconcileTrees([A.children[j], B.children[i]]).tree;
+        j++;
       }
-      choice = optionalChoices.next();
     }
-
-    for (var i = 0; i < bestChoice.length; i++) {
-      bestChoice[i].optional = true;
-    }
-
-    return {tree: B, loss: minLoss};
+    console.log(bestChoiceAndLoss);
+    console.log(bestChoiceAndLoss.loss);
+    return {tree: B, loss: bestChoiceAndLoss.loss};
   }
 }
 
-function getLoss(A, B, beta) {
+function getLoss(A, B) {
+  if (A.children.length > B.children.length) {
+    return getLoss(B, A);
+  }
+
+  const numOptionals = B.children.length - A.children.length;
+  const optionalChoices = Combinatorics.combination(
+    range(B.children.length), numOptionals
+  );
+  let choice = optionalChoices.next();
+  let minLoss = null;
+  let bestChoice = null;
+  while (choice) {
+    console.log(choice);
+    const loss = getSpecificLoss(A, B, choice);
+    if (minLoss === null || loss < minLoss) {
+      minLoss = loss;
+      bestChoice = choice;
+    }
+    choice = optionalChoices.next();
+  }
+
+  return {loss: minLoss, choice: bestChoice};
+}
+
+function getSpecificLoss(A, B, beta) {
   let mainLoss = beta.reduce((sum, b) => {
-    return sum + b.numDescendants + 1;
+    return sum + B.children[b].numDescendants + 1;
   }, 0);
   let optionalSet = {};
-  for (var i = 0; i < beta.length; i++) {
-    optionalSet[beta[i].index] = true;
+  for (let i = 0; i < beta.length; i++) {
+    optionalSet[B.children[beta[i]].index] = true;
   }
   let auxiliarlyLoss = 0;
   for (let i = 0, j = 0; i < B.children.length; i++) {
     if (!optionalSet[B.children[i].index]) {
       try {
-        auxiliarlyLoss += reconcileTrees(A.children[j], B.children[i]).loss;
+        auxiliarlyLoss += getLoss(A.children[j], B.children[i]).loss;
       } catch (e) {
         auxiliarlyLoss += Infinity;
       }
@@ -117,17 +143,12 @@ function getLoss(A, B, beta) {
 
 function treesAreSame(a, b) {
   if (!hasSameRoot(a, b)) return false;
-  if (!a.children !== !b.children) return false;
+  if (a.children.length !== b.children.length) return false;
 
-  if (!!a.children) { // if a has children, then
-    if (!b.children) return false; // b must too
-    if (a.children.length !== b.children.length) return false;
-
-    for (var i = 0; i < a.children; i++) {
-      if (!treesAreSame(a.children[i], b.children[i])) return false;
-    }
+  for (let i = 0; i < a.children; i++) {
+    if (!treesAreSame(a.children[i], b.children[i])) return false;
   }
-
+  
   return true;
 }
 
@@ -136,21 +157,27 @@ function hasSameRoot(a, b) {
 }
 
 function convertTreeToString(tree) {
-  return JSON.stringify(tree, true, 2);
-  // const templateDom = treeToDom(tree);
-  // return SERIALIZER.serializeToString(templateDom, 'text/html');
+  const start = `<${tree.type + (tree.optional ? '?' : '')}>`;
+  const end = `</${tree.type}>`;
+  const children = tree.children.reduce((concatenation, child) => {
+    return concatenation + convertTreeToString(child);
+  }, '');
+  return start + children + end;
 }
 
 function treeToDom(tree) {
   return parseHtml('<div></div>');
 }
 
-class UnresolveableExamplesException {
-  constructor(examples) {
-    this.value = examples;
-    this.message = 'could not resolve the supplied examples';
-    this.toString = () => {
-      return this.message;
-    };
+function range(n) {
+  let list = [];
+  for (let i = 0; i < n; i++) list.push(i);
+  return list;
+}
+
+class UnresolveableExamplesError extends Error {
+  constructor(...args) {
+    super(...args)
+    Error.captureStackTrace(this, UnresolveableExamplesError);
   }
 }

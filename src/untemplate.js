@@ -1,7 +1,7 @@
 import { DOMParser } from 'xmldom';
 import { _ } from 'lodash';
 import {
-  getNonEmptyChildren, number,
+  parseTemplate, getNonEmptyChildren, number,
   parseHtml, isElement, isTextNode, isOptional
 } from './utils';
 
@@ -11,13 +11,8 @@ import {
 // postconditions:
 // - return list of assoc arrays from template properties to values
 export function untemplate (dsl, element) {
-  const desugaredDsl = desugar(dsl);
-	const template = parseHtml(desugaredDsl);
+	const template = parseTemplate(dsl);
   return find(template, element);
-}
-
-function desugar(dsl) {
-  return dsl.trim().replace(/\?>/g, ' optional="true">');
 }
 
 function find(template, element) {

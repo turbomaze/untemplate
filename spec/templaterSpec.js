@@ -1,9 +1,7 @@
 import { deduceTemplate } from '../src/index.js';
-import { getNonEmptyChildren, parseHtml } from '../src/utils.js';
-
-function templatesMatch(a, b) {
-  return false;
-}
+import {
+  templatesMatch, parseTemplate, getNonEmptyChildren, isOptional, isElement
+} from '../src/utils.js';
 
 describe ('untemplate',  () => {
   describe ('#deduceTemplate',  () => {
@@ -15,12 +13,11 @@ describe ('untemplate',  () => {
         `
       ];
       const templateString = deduceTemplate(examples);
-      const template = parseHtml(templateString);
-      const expectedTemplate = parseHtml(`
+      const template = parseTemplate(templateString);
+      const expectedTemplate = parseTemplate(`
         <div><span> ['example 1', 'example 2'] </span></div>
       `);
-      // REAL: expect(templatesMatch(expectedTemplate, template)).toEqual(true);
-      expect(templatesMatch(expectedTemplate, template)).toEqual(false);
+      expect(templatesMatch(expectedTemplate, template)).toEqual(true);
     });
 
     it ('should deduce from examples with one unambiguous difference',  () => {
@@ -31,17 +28,17 @@ describe ('untemplate',  () => {
         `
       ];
       const templateString = deduceTemplate(examples);
-      const template = parseHtml(templateString);
-      const expectedTemplate = parseHtml(`
+      const template = parseTemplate(templateString);
+      const expectedTemplate = parseTemplate(`
         <div>
-					<span> ['example 1', 'example 2'] </span>
-					<div optional="true"> ['example 3'] </div>
-				</div>
+          <span> ['example 1', 'example 2'] </span>
+          <div optional="true"> ['example 3'] </div>
+        </div>
       `);
       expect(templatesMatch(expectedTemplate, template)).toEqual(true);
     });
 
-    it ('should assign optionals in BFS order',  () => {
+    fit ('should assign optionals in BFS order',  () => {
       const examples = [`
           <div><span> example 1 </span></div>
         `, `
@@ -49,17 +46,17 @@ describe ('untemplate',  () => {
         `
       ];
       const templateString = deduceTemplate(examples);
-      const template = parseHtml(templateString);
-      const expectedTemplate = parseHtml(`
+      const template = parseTemplate(templateString);
+      const expectedTemplate = parseTemplate(`
         <div>
-					<span> ['example 1', 'example 2'] </span>
-					<span optional="true"> ['example 3'] </span>
-				</div>
+          <span> ['example 1', 'example 2'] </span>
+          <span optional="true"> ['example 3'] </span>
+        </div>
       `);
       expect(templatesMatch(expectedTemplate, template)).toEqual(true);
     });
 
-    fit ('should consider children when assigning optionals',  () => {
+    it ('should consider children when assigning optionals',  () => {
       const examples = [`
           <div><span><div> example 1 </div></span></div>
         `, `
@@ -67,12 +64,12 @@ describe ('untemplate',  () => {
         `
       ];
       const templateString = deduceTemplate(examples);
-      const template = parseHtml(templateString);
-      const expectedTemplate = parseHtml(`
+      const template = parseTemplate(templateString);
+      const expectedTemplate = parseTemplate(`
         <div>
-					<span> ['example 2'] </span>
-					<span optional="true"><div> ['example 1', 'example 3'] </div></span>
-				</div>
+          <span> ['example 2'] </span>
+          <span optional="true"><div> ['example 1', 'example 3'] </div></span>
+        </div>
       `);
       expect(templatesMatch(expectedTemplate, template)).toEqual(true);
     });
@@ -85,12 +82,12 @@ describe ('untemplate',  () => {
         `
       ];
       const templateString = deduceTemplate(examples);
-      const template = parseHtml(templateString);
-      const expectedTemplate = parseHtml(`
+      const template = parseTemplate(templateString);
+      const expectedTemplate = parseTemplate(`
         <div>
-					<span> ['example 2'] </span>
-					<span optional="true"><div> ['example 1', 'example 3'] </div></span>
-				</div>
+          <span> ['example 2'] </span>
+          <span optional="true"><div> ['example 1', 'example 3'] </div></span>
+        </div>
       `);
       expect(templatesMatch(expectedTemplate, template)).toEqual(true);
     });
