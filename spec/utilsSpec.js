@@ -1,10 +1,62 @@
 import { _ } from 'lodash';
 import {
-  getNonEmptyChildren, number,
+  parseTemplate, getNonEmptyChildren, number,
   parseHtml, isElement, isTextNode, isOptional
 } from '../src/utils';
 
 describe ('untemplate',  () => {
+  // NOTE: *white-box testing for #parseTemplate*
+  // - implementation just calls #parseHtml; don't duplicate work of testing it
+  // - the dsl is basically just html at this point
+  // - just test for the differences
+  describe ('#parseTemplate',  () => {
+    it ('should parse simple templates correctly',  () => { 
+      const dsl = '<div><span></span></div>';
+      const template = parseTemplate(dsl);
+      expect(template.tagName).toEqual('div');
+      expect(template.getAttribute('optional')).not.toEqual('true');
+      expect(template.childNodes.length).toEqual(1);
+      expect(template.childNodes[0].tagName).toEqual('span');
+      expect(template.childNodes[0].getAttribute('optional')).not.toEqual('true');
+    });
+
+    it ('should parse templates with verbose optional syntax', () => {
+      const dsl = '<ul><li></li><li optional="true"></li></ul>';
+      const template = parseTemplate(dsl);
+      expect(template.tagName).toEqual('ul');
+      expect(template.getAttribute('optional')).not.toEqual('true');
+      expect(template.childNodes.length).toEqual(2);
+      expect(template.childNodes[0].tagName).toEqual('li');
+      expect(template.childNodes[0].getAttribute('optional')).not.toEqual('true');
+      expect(template.childNodes[1].tagName).toEqual('li');
+      expect(template.childNodes[1].getAttribute('optional')).toEqual('true');
+    });
+
+    it ('should parse templates with shorthand optional syntax', () => {
+      const dsl = '<ul><li></li><li?></li></ul>';
+      const template = parseTemplate(dsl);
+      expect(template.tagName).toEqual('ul');
+      expect(template.getAttribute('optional')).not.toEqual('true');
+      expect(template.childNodes.length).toEqual(2);
+      expect(template.childNodes[0].tagName).toEqual('li');
+      expect(template.childNodes[0].getAttribute('optional')).not.toEqual('true');
+      expect(template.childNodes[1].tagName).toEqual('li');
+      expect(template.childNodes[1].getAttribute('optional')).toEqual('true');
+    });
+
+    it ('should support nested optionals', () => {
+      const dsl = '<section?><div></div><span?></span></section>';
+      const template = parseTemplate(dsl);
+      expect(template.tagName).toEqual('section');
+      expect(template.getAttribute('optional')).toEqual('true');
+      expect(template.childNodes.length).toEqual(2);
+      expect(template.childNodes[0].tagName).toEqual('div');
+      expect(template.childNodes[0].getAttribute('optional')).not.toEqual('true');
+      expect(template.childNodes[1].tagName).toEqual('span');
+      expect(template.childNodes[1].getAttribute('optional')).toEqual('true');
+    });
+  });
+
   describe ('#getNonEmptyChildren',  () => {
     it ('should return an empty array when there are no children',  () => {
       const html = '<div></div>';

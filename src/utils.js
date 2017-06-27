@@ -7,6 +7,14 @@ const DIV = PARSER.parseFromString('<div> text </div>').firstChild;
 const ELEMENT_NODE = DIV.nodeType;
 const TEXT_NODE = DIV.firstChild.nodeType;
 
+export function parseTemplate(dsl) {
+  return parseHtml(desugar(dsl));  
+}
+
+function desugar(dsl) {
+  return dsl.trim().replace(/\?>/g, ' optional="true">');
+}
+
 export function getNonEmptyChildren(element) {
   return Array.from(element.childNodes || []).filter((child) => {
     const isNonEmptyText = isTextNode(child) && child.nodeValue.trim() !== '';
