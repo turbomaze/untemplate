@@ -1,5 +1,4 @@
 import { XMLSerializer } from 'xmldom';
-import Combinatorics from 'js-combinatorics';
 import { _ } from 'lodash';
 import {
   getNonEmptyChildren, number,
@@ -68,7 +67,7 @@ function annotateTree (element) {
 // postcondition: returns a new tree that's a copy with the following field
 // - numDescendants: number of nodes with this node as an ancestor
 function countDescendants(tree) {
-  const treeWithDescendants = _.cloneDeep(tree);
+  const treeWithDescendants = _.clone(tree);
   treeWithDescendants.children = treeWithDescendants.children.map(countDescendants);
   if (treeWithDescendants.children.length === 0) {
     treeWithDescendants.numDescendants = 0;
@@ -109,7 +108,7 @@ function reconcileTwoTrees(treeA, treeB) {
 
 function getLoss(A, B) {
   // init pi table
-  const { pi, nu } = initEditScriptDpTables(A, B);
+  const { pi, moves } = initEditScriptDpTables(A, B);
 
   // populate the pi table
   const m = A.children.length
@@ -125,59 +124,59 @@ function getLoss(A, B) {
       const lossFromAddingB = pi[i+1][j] + bChild.numDescendants + 1;
       pi[i+1][j+1] = Math.min(lossFromUpdating, lossFromAddingA, lossFromAddingB);
       if (lossFromUpdating < Math.min(lossFromAddingA, lossFromAddingB)) {
-        nu[i+1][j+1] = {direction: DIAGONAL, script: updateLossAndScript.script};
+        moves[i+1][j+1] = {direction: DIAGONAL, script: updateLossAndScript.script};
       } else if (lossFromAddingA < lossFromAddingB){
-        nu[i+1][j+1] = {direction: ABOVE};
+        moves[i+1][j+1] = {direction: ABOVE};
       } else {
-        nu[i+1][j+1] = {direction: LEFT};
+        moves[i+1][j+1] = {direction: LEFT};
       }
     }
   }
 
-  return {loss: pi[m][n], script: recoverEditScriptFromTables(pi, nu)};
+  return {loss: pi[m][n], script: recoverEditScriptFromTables(pi, moves)};
 }
 
 function initEditScriptDpTables(A, B) {
   const m = A.children.length
   const n = B.children.length;
   const pi = []; // pi_ij = ith in A and jth in B
-  const nu = []; // predecessors of the pi table
+  const moves = []; // predecessors of the pi table
   for (let i = 0; i < m + 1; i++) {
-    pi.push([]), nu.push([]);
+    pi.push([]), moves.push([]);
     for (let j = 0; j < n + 1; j++) {
       pi[i].push(0);
-      nu[i].push({direction: NO_PARENT});
+      moves[i].push({direction: NO_PARENT});
     }
   }
   if (A.type !== B.type) pi[0][0] = Infinity;
 
   for (let i = 0; i < m; i++) {
     pi[i + 1][0] = pi[i][0] + A.children[i].numDescendants + 1;
-    nu[i + 1][0] = {direction: ABOVE};
+    moves[i + 1][0] = {direction: ABOVE};
   }
   for (let j = 0; j < n; j++) {
     pi[0][j + 1] = pi[0][j] + B.children[j].numDescendants + 1;
-    nu[0][j + 1] = {direction: LEFT};
+    moves[0][j + 1] = {direction: LEFT};
   }
-  return {pi: pi, nu: nu};
+  return {pi: pi, moves: moves};
 }
 
-function recoverEditScriptFromTables(pi, nu) {
+function recoverEditScriptFromTables(pi, moves) {
   // recover the edit script from the predecessor tables
   const script = [];
   let I = pi.length - 1, J = pi[0].length - 1;
   while (I !== 0 || J !== 0) {
-    const predecessor = nu[I][J];
+    const predecessor = moves[I][J];
     if (predecessor.direction === ABOVE) {
-      script.push(makeEditScriptStep(ADD_A, --I));
+      script.unshift(makeEditScriptStep(ADD_A, --I));
     } else if (predecessor.direction === LEFT) {
-      script.push(makeEditScriptStep(ADD_B, --J));
+      script.unshift(makeEditScriptStep(ADD_B, --J));
     } else {
-      script.push(makeEditScriptStep(MODIFY, --I, --J, predecessor.script));
+      script.unshift(makeEditScriptStep(MODIFY, --I, --J, predecessor.script));
     }
   }
 
-  return script.reverse();
+  return script;
 }
 
 function makeEditScriptStep(type, source, target, script) {
@@ -270,6 +269,10 @@ function treeWithPropertySelectors(tree) {
   return copy;
 }
 
+// postconditions:
+// - merges list of objects into one object, by key
+// - text values are coerced into arrays, and then arrays are concatenated
+// - the returned object's properties are all comma-separated lists
 function consolidateValues(values) {
   const union = {};
   values.forEach((value) => {
@@ -303,9 +306,7 @@ function insertValuesIntoProperties(tree, values) {
       try {
         children.push(insertValuesIntoProperties(child, values));
       } catch (e) {
-        if (e.name !==  'NoPropertiesError') {
-          throw e;
-        }
+        if (e.name !==  'NoPropertiesError') throw e;
       }
     }
     copy.children = children;
@@ -328,16 +329,6 @@ function convertTreeToString(tree) {
       return start + '\n' + children + end + '\n';
     }
   }
-}
-
-function treeToDom(tree) {
-  return parseHtml('<div></div>');
-}
-
-function range(n) {
-  let list = [];
-  for (let i = 0; i < n; i++) list.push(i);
-  return list;
 }
 
 export class UnresolveableExamplesError extends Error {
