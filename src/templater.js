@@ -17,13 +17,14 @@ const ADD_A = 'add a';
 const ADD_B = 'add b';
 const MODIFY = 'modify';
 const JOIN = 'join';
+const PENALTY = 1.01; // biases the optimization to more intuitive templates
 
 export function deduceTemplate(examples) {
   const trees = examples.map((ex) => {
-    return number(annotateTree(parseHtml(ex)));
+    return number(countDescendants(annotateTree(parseHtml(ex))));
   });
   try {
-    const deducedStructure = reconcileTrees(trees).tree;
+    const deducedStructure = reconcileTrees(trees);
     const structureWithProperties = treeWithPropertySelectors(deducedStructure);
     const maximalDsl = convertTreeToString(structureWithProperties);
     const exampleValues = examples.map((ex) => {
@@ -37,7 +38,6 @@ export function deduceTemplate(examples) {
       structureWithProperties, consolidatedValues
     );
     const dsl = convertTreeToString(template);
-    console.log(dsl);
     return dsl;
   } catch (e) {
     if (e.name === 'UnresolveableExamplesError') {
@@ -51,7 +51,6 @@ export function deduceTemplate(examples) {
 // postcondition: returns a json object with the following fields:
 // - type: the tagname of the element
 // - children: child nodes, recursive
-// - numDescendants: number of nodes with this node as an ancestor
 function annotateTree (element) {
   if (!isElement(element)) return false;
 
@@ -72,6 +71,22 @@ function annotateTree (element) {
       }, children.length)
     };
   }
+}
+
+// postcondition: returns a new tree that's a copy with the following field
+// - numDescendants: number of nodes with this node as an ancestor
+function countDescendants(tree) {
+  const treeWithDescendants = _.cloneDeep(tree);
+  treeWithDescendants.children = treeWithDescendants.children.map(countDescendants);
+  if (treeWithDescendants.children.length === 0) {
+    treeWithDescendants.numDescendants = 0;
+  } else {
+    treeWithDescendants.numDescendants = treeWithDescendants.children.reduce(
+      (total, child) => { return total + child.numDescendants; },
+      treeWithDescendants.children.length
+    );
+  }
+  return treeWithDescendants;
 }
 
 // preconditions:
@@ -97,11 +112,8 @@ function reconcileTrees(trees) {
   } else {
     // much higher hanging fruit
     const minLossAndEditScript = getLoss(A, B);
-    console.log(minLossAndEditScript);
-    // const reconciliation = applyScriptToTrees(A, B, minLossAndEditScript.script);
-    // console.log(reconciliation);
-    // return reconciliation;
-    return false;
+    const reconciliation = applyScriptToTrees(A, B, minLossAndEditScript.script);
+    return reconciliation;
   }
 }
 
@@ -118,29 +130,19 @@ function getLoss(A, B) {
       const bChild = B.children[j];
       const updateLossAndScript = getLoss(aChild, bChild);
       // TODO: don't recurse if pi[i][j] === Infinity
-      const lossFromUpdating = pi[i][j] + updateLossAndScript.loss;
+      const lossFromUpdating = pi[i][j] + PENALTY * updateLossAndScript.loss;
       const lossFromAddingA = pi[i][j+1] + aChild.numDescendants + 1;
       const lossFromAddingB = pi[i+1][j] + bChild.numDescendants + 1;
       pi[i+1][j+1] = Math.min(lossFromUpdating, lossFromAddingA, lossFromAddingB);
-      if (lossFromUpdating <= Math.min(lossFromAddingA, lossFromAddingB)) {
+      if (lossFromUpdating < Math.min(lossFromAddingA, lossFromAddingB)) {
         nu[i+1][j+1] = {direction: DIAGONAL, script: updateLossAndScript.script};
-      } else if (lossFromAddingA <= lossFromAddingB){
+      } else if (lossFromAddingA < lossFromAddingB){
         nu[i+1][j+1] = {direction: ABOVE};
       } else {
         nu[i+1][j+1] = {direction: LEFT};
       }
     }
   }
-
-  /*
-  console.log('--- --- A --- ---');
-  console.log(A);
-  console.log('--- --- B --- ---');
-  console.log(B);
-  console.log('--- --- LOSS --- ---');
-  console.log(pi);
-  console.log(nu);
-  */
 
   return {loss: pi[m][n], script: recoverEditScriptFromTables(pi, nu)};
 }
@@ -208,6 +210,45 @@ function makeEditScriptStep(type, source, target, script) {
 function optimizeScript(script) {
   const numNonJoins = script.filter(x => x.type !== JOIN).length;
   return numNonJoins === 0 ? [] : script;
+}
+
+// preconditions:
+// - treeA.type === treeB.type
+// - script was created for the context of treeA and treeB
+function applyScriptToTrees(treeA, treeB, script) {
+  const A = _.cloneDeep(treeA);
+  const B = _.cloneDeep(treeB);
+  const children = [];
+  const reconciliation = {type: A.type, children: []};
+  for (let i = 0; i < script.length; i++) {
+    _applyScriptInstruction(reconciliation, A, B, script[i]);
+  }
+  return number(countDescendants(reconciliation));
+}
+
+// NOTE: this should be used exclusively as a helper for #applyScriptToTrees
+// postconditions:
+// - modifies the input tree** by the given instruction
+// - also modifies trees A and B**
+function _applyScriptInstruction(tree, A, B, instruction) {
+  if (instruction.type === ADD_A) {
+    A.children[instruction.source].optional = true;
+    tree.children.push(A.children[instruction.source]);
+  } else if (instruction.type === ADD_B) {
+    B.children[instruction.source].optional = true;
+    tree.children.push(B.children[instruction.source]);
+  } else if (instruction.type === JOIN) {
+    tree.children.push(A.children[instruction.source]);
+  } else {
+    tree.children.push(
+      applyScriptToTrees(
+        A.children[instruction.source],
+        B.children[instruction.target],
+        instruction.script
+      )
+    );
+  }
+  return false;
 }
 
 function treesAreSame(a, b) {
