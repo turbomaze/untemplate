@@ -99,6 +99,16 @@ describe ('untemplate',  () => {
       expect(template.childNodes[1].tagName).toEqual('span');
       expect(isOptional(template.childNodes[1])).toEqual(true);
     });
+
+    it ('should support shorthand syntax for self-closing nodes', () => {
+      const dsl = '<section><img?/></section>';
+      const template = parseTemplate(dsl);
+      expect(template.tagName).toEqual('section');
+      expect(isOptional(template)).not.toEqual(true);
+      expect(template.childNodes.length).toEqual(1);
+      expect(template.childNodes[0].tagName).toEqual('img');
+      expect(isOptional(template.childNodes[0])).toEqual(true);
+    });
   });
 
   describe ('#getNonEmptyChildren',  () => {

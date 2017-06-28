@@ -32,7 +32,9 @@ export function parseTemplate(dsl) {
 }
 
 function desugar(dsl) {
-  return dsl.trim().replace(/\?>/g, ' optional="true">');
+  return dsl.trim()
+    .replace(/\?>/g, ' optional="true">')
+    .replace(/\?\/>/g, ' optional="true"\/>');
 }
 
 export function getNonEmptyChildren(element) {
