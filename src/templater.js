@@ -17,35 +17,27 @@ const ADD_A = 'add a';
 const ADD_B = 'add b';
 const MODIFY = 'modify';
 const JOIN = 'join';
-const PENALTY = 1.01; // biases the optimization to more intuitive templates
+const TIE_BREAKER = 1.000001; // biases the optimization to more intuitive templates
 
 export function deduceTemplate(examples) {
   const trees = examples.map((ex) => {
     return number(countDescendants(annotateTree(parseHtml(ex))));
   });
-  try {
-    const deducedStructure = reconcileTrees(trees);
-    const structureWithProperties = treeWithPropertySelectors(deducedStructure);
-    const maximalDsl = convertTreeToString(structureWithProperties);
-    const exampleValues = examples.map((ex) => {
-      return untemplate(maximalDsl, parseHtml(ex));
-    });
-    const consolidatedValues = consolidateValues(exampleValues.map((value) => {
-      // assumption: maximalDsl matches exactly once in each example
-      return value[0];
-    }));
-    const template = insertValuesIntoProperties(
-      structureWithProperties, consolidatedValues
-    );
-    const dsl = convertTreeToString(template);
-    return dsl;
-  } catch (e) {
-    if (e.name === 'UnresolveableExamplesError') {
-      return false;
-    } else {
-      throw e;
-    }
-  }
+  const deducedStructure = reconcileTrees(trees);
+  const structureWithProperties = treeWithPropertySelectors(deducedStructure);
+  const maximalDsl = convertTreeToString(structureWithProperties);
+  const exampleValues = examples.map((ex) => {
+    return untemplate(maximalDsl, parseHtml(ex));
+  });
+  const consolidatedValues = consolidateValues(exampleValues.map((value) => {
+    // assumption: maximalDsl matches exactly once in each example
+    return value[0];
+  }));
+  const template = insertValuesIntoProperties(
+    structureWithProperties, consolidatedValues
+  );
+  const dsl = convertTreeToString(template);
+  return dsl;
 }
 
 // postcondition: returns a json object with the following fields:
@@ -130,7 +122,7 @@ function getLoss(A, B) {
       const bChild = B.children[j];
       const updateLossAndScript = getLoss(aChild, bChild);
       // TODO: don't recurse if pi[i][j] === Infinity
-      const lossFromUpdating = pi[i][j] + PENALTY * updateLossAndScript.loss;
+      const lossFromUpdating = pi[i][j] + TIE_BREAKER * updateLossAndScript.loss;
       const lossFromAddingA = pi[i][j+1] + aChild.numDescendants + 1;
       const lossFromAddingB = pi[i+1][j] + bChild.numDescendants + 1;
       pi[i+1][j+1] = Math.min(lossFromUpdating, lossFromAddingA, lossFromAddingB);
@@ -255,7 +247,7 @@ function treesAreSame(a, b) {
   if (!hasSameRoot(a, b)) return false;
   if (a.children.length !== b.children.length) return false;
 
-  for (let i = 0; i < a.children; i++) {
+  for (let i = 0; i < a.children.length; i++) {
     if (!treesAreSame(a.children[i], b.children[i])) return false;
   }
   
@@ -327,12 +319,16 @@ function convertTreeToString(tree) {
   if (tree.type === 'text') {
     return tree.value;
   } else {
-    const start = `\n<${tree.type + (tree.optional ? '?' : '')}>\n`;
+    const start = `\n<${tree.type + (tree.optional ? '?' : '')}>`;
     const end = `</${tree.type}>`;
     const children = tree.children.reduce((concatenation, child) => {
       return concatenation + convertTreeToString(child);
     }, '').replace(/^/g, '  ').replace(/\n/g, '\n  ') + '\n';
-    return start + children + end + '\n';
+    if (children.trim().length === 0) {
+      return start + end + '\n';
+    } else {
+      return start + '\n' + children + end + '\n';
+    }
   }
 }
 
@@ -346,7 +342,7 @@ function range(n) {
   return list;
 }
 
-class UnresolveableExamplesError extends Error {
+export class UnresolveableExamplesError extends Error {
   constructor(...args) {
     super(...args)
     this.name = 'UnresolveableExamplesError';

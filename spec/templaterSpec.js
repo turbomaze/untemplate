@@ -4,7 +4,7 @@ import {
 } from '../src/utils.js';
 
 describe ('untemplate',  () => {
-  fdescribe ('#deduceTemplate',  () => {
+  describe ('#deduceTemplate',  () => {
     it ('should deduce from identical examples',  () => {
       const examples = [`
         <div><span> example 1 </span></div>
@@ -109,6 +109,140 @@ describe ('untemplate',  () => {
           <span><div> example 2,example 5 </div></span>
           <span?><div><div> example 3 </div></div></span>
           <span> example 4,example 6 </span>
+        </div>
+      `);
+      expect(templatesMatch(expectedTemplate, template)).toEqual(true);
+    });
+
+    it ('should support self closing dom nodes',  () => {
+      const examples = [`
+        <header>
+          <span> example 1 </span>
+          <span>
+            <img/>
+            <img/>
+            <img/>
+            <img/>
+            <img/>
+          </span>
+        </header>
+      `, `
+        <header>
+          <span> example 5 </span>
+          <span>
+            <img/>
+            <img/>
+          </span>
+        </header>
+      `];
+      const templateString = deduceTemplate(examples);
+      const template = parseTemplate(templateString);
+      const expectedTemplate = parseTemplate(`
+        <header>
+          <span> example 1,example 5 </span>
+          <span>
+            <img/>
+            <img/>
+            <img?/>
+            <img?/>
+            <img?/>
+          </span>
+        </header>
+      `);
+      expect(templatesMatch(expectedTemplate, template)).toEqual(true);
+    });
+
+    it ('should throw UnresolveableExamplesError for inconsistent examples',  () => {
+      const examples = [`
+        <div>
+          <p> example 1 </p>
+        </div>
+      `, `
+        <span>
+          <p> example 2 </p>
+        </span>
+      `];
+      try {
+        const templateString = deduceTemplate(examples);
+        fail();
+      } catch (e) {
+        if (e.name !== 'UnresolveableExamplesError') {
+          fail();
+        }
+      }
+    });
+
+    it ('should ignore classnames when matching templates',  () => {
+      const examples = [`
+        <div class="dog">
+          <ul>
+            <li class="trex"> example 1 </li>
+            <li class="dinosaur"> example 2 </li>
+          </ul>
+        </div>
+      `, `
+        <div class="cat">
+          <ul>
+            <li class="leopard"> example 3 </li>
+            <li> example 4 </li>
+            <li class="lion"> example 5 </li>
+            <li> example 6 </li>
+          </ul>
+        </div>
+      `];
+      const templateString = deduceTemplate(examples);
+      const template = parseTemplate(templateString);
+      const expectedTemplate = parseTemplate(`
+        <div>
+          <ul>
+            <li> example 1,example 3 </li>
+            <li> example 2,example 4 </li>
+            <li?> example 5 </li>
+            <li?> example 6 </li>
+          </ul>
+        </div>
+      `);
+      expect(templatesMatch(expectedTemplate, template)).toEqual(true);
+    });
+
+    it ('should correctly match highly nested, low-degree nodes',  () => {
+      const examples = [`
+        <div>
+          <span>
+            example 1
+            <p>
+              <a>
+                <b>
+                  <i> example 2 </i>
+                </b>
+              </a>
+            </p>
+          </span>
+        </div>
+      `, `
+        <div>
+          <span>
+            example 3
+            <p>
+              <a> </a>
+            </p>
+          </span>
+        </div>
+      `];
+      const templateString = deduceTemplate(examples);
+      const template = parseTemplate(templateString);
+      const expectedTemplate = parseTemplate(`
+        <div>
+          <span>
+            example 1,example 3
+            <p>
+              <a>
+                <b?>
+                  <i> example 2 </i>
+                </b>
+              </a>
+            </p>
+          </span>
         </div>
       `);
       expect(templatesMatch(expectedTemplate, template)).toEqual(true);
