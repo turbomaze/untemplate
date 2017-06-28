@@ -51,7 +51,7 @@ Refer to the specs file at `spec/untemplateSpec.js` for examples of each of thes
 - they can appear anywhere on the page, all occurrences at different levels of nesting
 - robust to unexpected additions / removals of textnodes in the DOM
 - all `{{ property }}` captures are optional to simplify template creation
-- can mark DOM nodes in the template as optionally occurring
+- can mark DOM nodes in the template as "optional", which means they don't need to occur for the template to match
 - can have nested optional DOM nodes
 - can deduce the optimal template given a list of dom nodes
 
@@ -76,7 +76,7 @@ Refer to the specs file at `spec/untemplateSpec.js` for examples of each of thes
     * minimum means: fewest number of optional nodes in the template (this count includes the descendants of optional nodes)
   * this string all of the text in the provided examples in an aggregated form to communicate which portions of the template correspond to what
 * throws 
-  * UnresolveableExamplesError: thrown if the input examples cannot be reconciled for any reason (usually just because they do not share a common outermost tag)
+  * `UnresolveableExamplesError`: thrown if the input examples cannot be reconciled for any reason (usually just because they do not share a common outermost tag)
 
 ## License
 
