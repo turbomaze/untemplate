@@ -15,10 +15,10 @@ This module:
 ## Usage
 
 ```js
-import { untemplate } from <this module>;
+import { untemplate } from 'untemplate';
 
 // obtain a DOM element from somewhere
-let element = _getDomFromHtml(`
+let element = get-dom-from-html(`
   <div>
     <div>
       <span> alberta </span>
@@ -35,7 +35,7 @@ let template = `
     <span?> {{ country }} </span>
   </div>
 `;
-let data = untemplate(template, page);
+let data = untemplate(template, element);
 // data: [{ region: 'alberta' }, { region: 'bc', country: 'canada' }]
 ```
 
