@@ -81,22 +81,20 @@ function countDescendants(tree) {
   return treeWithDescendants;
 }
 
-// preconditions:
-// TODO: these preconditions are limitations
-// - trees.length === 2
 // postconditions:
 // - returns a tree
 // - throws UnresolveableExamplesError if the supplied trees are irreconcilable
 function reconcileTrees(trees) {
-  const A = _.cloneDeep(trees[0]);
-  const B = _.cloneDeep(trees[1]);
-  if (trees.length === 1) {
-    return trees[0];
-  } else if (trees.length !== 2) {
-    throw new UnresolveableExamplesError();
-  }
+  if (trees.length === 0) throw new UnresolveableExamplesError();
+  if (trees.length === 1) return trees[0];
 
+  return trees.reduce(reconcileTwoTrees);
+}
+
+function reconcileTwoTrees(treeA, treeB) {
   // low hanging fruit
+  const A = _.cloneDeep(treeA);
+  const B = _.cloneDeep(treeB);
   if (treesAreSame(A, B)) {
     return A;
   } else if (!hasSameRoot(A, B)) {

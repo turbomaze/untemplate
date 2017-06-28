@@ -247,5 +247,140 @@ describe ('untemplate',  () => {
       `);
       expect(templatesMatch(expectedTemplate, template)).toEqual(true);
     });
+
+    it ('should correctly reconcile more than 2 examples together #1',  () => {
+      const examples = [`
+        <div>
+          <span> example 1 </span>
+          <div> example 2 </div>
+        </div>
+      `, `
+        <div>
+          <span> example 3 </span>
+          <p> example 4 </p>
+        </div>
+      `, `
+        <div>
+          <span> example 5 </span>
+          <a> example 6 </a>
+        </div>
+      `];
+      const templateString = deduceTemplate(examples);
+      const template = parseTemplate(templateString);
+      const expectedTemplate = parseTemplate(`
+        <div>
+          <span> example 1,example 3,example 5 </span>
+          <div?> example 2 </div>
+          <p?> example 4 </p>
+          <a?> example 6 </a>
+        </div>
+      `);
+      expect(templatesMatch(expectedTemplate, template)).toEqual(true);
+    });
+
+    it ('should correctly reconcile more than 2 examples together #2',  () => {
+      const examples = [`
+        <div>
+          <span> example 1 </span>
+          <span><div> example 2 </div></span>
+          <span><div><div> example 3 </div></div></span>
+          <span> example 4 </span>
+        </div>
+      `, `
+        <div>
+          <span><div> example 5 </div></span>
+          <span> example 6 </span>
+        </div>
+      `, `
+        <div>
+          <span><div><div> example 6 </div></div></span>
+          <span> example 7 </span>
+        </div>
+      `, `
+        <div>
+          <span> example 8 </span>
+          <span><div><div> </div></div></span>
+          <span> </span>
+        </div>
+      `];
+      const templateString = deduceTemplate(examples);
+      const template = parseTemplate(templateString);
+      const expectedTemplate = parseTemplate(`
+        <div>
+          <span?> example 1,example 8 </span>
+          <span?><div> example 2,example 5 </div></span>
+          <span?><div><div> example 3,example 6 </div></div></span>
+          <span> example 4,example 6,example 7 </span>
+        </div>
+      `);
+      expect(templatesMatch(expectedTemplate, template)).toEqual(true);
+    });
+
+    it ('should reject more than 2 examples if any are inconsistent',  () => {
+      const examples = [`
+        <div>
+          <span> example 1 </span>
+          <span><div> example 2 </div></span>
+          <span><div><div> example 3 </div></div></span>
+          <span> example 4 </span>
+        </div>
+      `, `
+        <section>
+          <span><div> example 5 </div></span>
+          <span> example 6 </span>
+        </section>
+      `, `
+        <div>
+          <span> example 8 </span>
+          <span><div><div> </div></div></span>
+          <span> </span>
+        </div>
+      `];
+      try {
+        const templateString = deduceTemplate(examples);
+        fail();
+      } catch (e) {
+        if (e.name !== 'UnresolveableExamplesError') {
+          fail();
+        }
+      }
+    });
+
+    it ('should correctly accumulate example text among > 2 examples',  () => {
+      const examples = [`
+        <div>
+          example 1
+          <span> example 2 </span>
+          example 3
+          <span> example 4 </span>
+        </div>
+      `, `
+        <div>
+          <span> example 5 </span>
+          example 6
+          <span> example 7 </span>
+          example 8
+        </div>
+      `, `
+        <div>
+          example 9
+          <span> example 10 </span>
+          <span> example 11 </span>
+          example 12
+        </div>
+      `];
+      const templateString = deduceTemplate(examples);
+      const template = parseTemplate(templateString);
+      const expectedTemplate = parseTemplate(`
+        <div>
+          example 1,example 9
+          <span> example 2,example 5,example 10 </span>
+          example 3,example 6
+          <span> example 4,example 7,example 11 </span>
+          example 8,example 12
+        </div>
+      `);
+      expect(templatesMatch(expectedTemplate, template)).toEqual(true);
+    });
   });
 });
