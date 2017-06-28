@@ -9,6 +9,14 @@ import { untemplate } from './untemplate';
 
 // constants
 const SERIALIZER = new XMLSerializer();
+const NO_PARENT = 'none';
+const DIAGONAL = 'diagonal';
+const ABOVE = 'above';
+const LEFT = 'left';
+const ADD_A = 'add a';
+const ADD_B = 'add b';
+const MODIFY = 'modify';
+const JOIN = 'join';
 
 export function deduceTemplate(examples) {
   const trees = examples.map((ex) => {
@@ -16,9 +24,8 @@ export function deduceTemplate(examples) {
   });
   try {
     const deducedStructure = reconcileTrees(trees).tree;
-    const structureWithAllProperties = treeWithPropertySelectors(deducedStructure);
-    const maximalDsl = convertTreeToString(structureWithAllProperties);
-    console.log(maximalDsl);
+    const structureWithProperties = treeWithPropertySelectors(deducedStructure);
+    const maximalDsl = convertTreeToString(structureWithProperties);
     const exampleValues = examples.map((ex) => {
       return untemplate(maximalDsl, parseHtml(ex));
     });
@@ -27,7 +34,7 @@ export function deduceTemplate(examples) {
       return value[0];
     }));
     const template = insertValuesIntoProperties(
-      structureWithAllProperties, consolidatedValues
+      structureWithProperties, consolidatedValues
     );
     const dsl = convertTreeToString(template);
     console.log(dsl);
@@ -74,88 +81,133 @@ function annotateTree (element) {
 // - returns a tree
 // - throws UnresolveableExamplesError if the supplied trees are irreconcilable
 function reconcileTrees(trees) {
+  const A = _.cloneDeep(trees[0]);
+  const B = _.cloneDeep(trees[1]);
   if (trees.length === 1) {
-    return {tree: trees[0], loss: 0};
+    return trees[0];
   } else if (trees.length !== 2) {
     throw new UnresolveableExamplesError();
-  } else if (trees[0].children > trees[1].children) {
-    return reconcileTrees([trees[1], trees[0]]);
   }
 
   // low hanging fruit
-  const A = _.cloneDeep(trees[0]);
-  const B = _.cloneDeep(trees[1]);
   if (treesAreSame(A, B)) {
-    return {tree: A, loss: 0};
+    return A;
   } else if (!hasSameRoot(A, B)) {
     throw new UnresolveableExamplesError();
   } else {
     // much higher hanging fruit
-    const bestChoiceAndLoss = getLoss(A, B);
-    const choiceSet = {};
-    for (let i = 0; i < bestChoiceAndLoss.choice.length; i++) {
-      choiceSet[bestChoiceAndLoss.choice[i]] = true;
-    }
-    for (let i = 0, j = 0; i < B.children.length; i++) {
-      if (choiceSet[i]) {
-        B.children[i].optional = true;
-      } else {
-        // invariant: |choiceSet| + A.children.length == B.children.length
-        B.children[i] = reconcileTrees([A.children[j], B.children[i]]).tree;
-        j++;
-      }
-    }
-    return {tree: number(B), loss: bestChoiceAndLoss.loss};
+    const minLossAndEditScript = getLoss(A, B);
+    console.log(minLossAndEditScript);
+    // const reconciliation = applyScriptToTrees(A, B, minLossAndEditScript.script);
+    // console.log(reconciliation);
+    // return reconciliation;
+    return false;
   }
 }
 
 function getLoss(A, B) {
-  if (A.children.length > B.children.length) {
-    return getLoss(B, A);
-  } else if (A.children.length === B.children.length) {
-    return {loss: 0, choice: []};
-  }
+  // init pi table
+  const { pi, nu } = initEditScriptDpTables(A, B);
 
-  const numOptionals = B.children.length - A.children.length;
-  const optionalChoices = Combinatorics.combination(
-    range(B.children.length), numOptionals
-  );
-  let choice = optionalChoices.next();
-  let minLoss = null;
-  let bestChoice = null;
-  const foo = Math.random() + ' -- ';
-  while (choice) {
-    const loss = getSpecificLoss(A, B, choice);
-    if (minLoss === null || loss <= minLoss) {
-      minLoss = loss;
-      bestChoice = choice;
+  // populate the pi table
+  const m = A.children.length
+  const n = B.children.length;
+  for (let i = 0; i < m; i++) {
+    const aChild = A.children[i];
+    for (let j = 0; j < n; j++) {
+      const bChild = B.children[j];
+      const updateLossAndScript = getLoss(aChild, bChild);
+      // TODO: don't recurse if pi[i][j] === Infinity
+      const lossFromUpdating = pi[i][j] + updateLossAndScript.loss;
+      const lossFromAddingA = pi[i][j+1] + aChild.numDescendants + 1;
+      const lossFromAddingB = pi[i+1][j] + bChild.numDescendants + 1;
+      pi[i+1][j+1] = Math.min(lossFromUpdating, lossFromAddingA, lossFromAddingB);
+      if (lossFromUpdating <= Math.min(lossFromAddingA, lossFromAddingB)) {
+        nu[i+1][j+1] = {direction: DIAGONAL, script: updateLossAndScript.script};
+      } else if (lossFromAddingA <= lossFromAddingB){
+        nu[i+1][j+1] = {direction: ABOVE};
+      } else {
+        nu[i+1][j+1] = {direction: LEFT};
+      }
     }
-    choice = optionalChoices.next();
   }
 
-  return {loss: minLoss, choice: bestChoice};
+  /*
+  console.log('--- --- A --- ---');
+  console.log(A);
+  console.log('--- --- B --- ---');
+  console.log(B);
+  console.log('--- --- LOSS --- ---');
+  console.log(pi);
+  console.log(nu);
+  */
+
+  return {loss: pi[m][n], script: recoverEditScriptFromTables(pi, nu)};
 }
 
-function getSpecificLoss(A, B, beta) {
-  let mainLoss = beta.reduce((sum, b) => {
-    return sum + B.children[b].numDescendants + 1;
-  }, 0);
-  let optionalSet = {};
-  for (let i = 0; i < beta.length; i++) {
-    optionalSet[B.children[beta[i]].index] = true;
-  }
-  let auxiliarlyLoss = 0;
-  for (let i = 0, j = 0; i < B.children.length; i++) {
-    if (!optionalSet[B.children[i].index]) {
-      try {
-        auxiliarlyLoss += getLoss(A.children[j], B.children[i]).loss;
-      } catch (e) {
-        auxiliarlyLoss += Infinity;
-      }
-      j++;
+function initEditScriptDpTables(A, B) {
+  const m = A.children.length
+  const n = B.children.length;
+  const pi = []; // pi_ij = ith in A and jth in B
+  const nu = []; // predecessors of the pi table
+  for (let i = 0; i < m + 1; i++) {
+    pi.push([]), nu.push([]);
+    for (let j = 0; j < n + 1; j++) {
+      pi[i].push(0);
+      nu[i].push({direction: NO_PARENT});
     }
   }
-  return mainLoss + auxiliarlyLoss;
+  if (A.type !== B.type) pi[0][0] = Infinity;
+
+  for (let i = 0; i < m; i++) {
+    pi[i + 1][0] = pi[i][0] + A.children[i].numDescendants + 1;
+    nu[i + 1][0] = {direction: ABOVE};
+  }
+  for (let j = 0; j < n; j++) {
+    pi[0][j + 1] = pi[0][j] + B.children[j].numDescendants + 1;
+    nu[0][j + 1] = {direction: LEFT};
+  }
+  return {pi: pi, nu: nu};
+}
+
+function recoverEditScriptFromTables(pi, nu) {
+  // recover the edit script from the predecessor tables
+  const script = [];
+  let I = pi.length - 1, J = pi[0].length - 1;
+  while (I !== 0 || J !== 0) {
+    const predecessor = nu[I][J];
+    if (predecessor.direction === ABOVE) {
+      script.push(makeEditScriptStep(ADD_A, --I));
+    } else if (predecessor.direction === LEFT) {
+      script.push(makeEditScriptStep(ADD_B, --J));
+    } else {
+      script.push(makeEditScriptStep(MODIFY, --I, --J, predecessor.script));
+    }
+  }
+
+  return script.reverse();
+}
+
+function makeEditScriptStep(type, source, target, script) {
+  if (arguments.length === 4) {
+    if (script.length === 0) {
+      return {type: JOIN, source: source, target: target};
+    } else {
+      const optimizedScript = optimizeScript(script);
+      if (optimizedScript.length === 0) {
+        return {type: JOIN, source: source, target: target};
+      } else {
+        return {type: type, source: source, target: target, script: script};
+      }
+    }
+  } else {
+    return {type: type, source: source};
+  }
+}
+
+function optimizeScript(script) {
+  const numNonJoins = script.filter(x => x.type !== JOIN).length;
+  return numNonJoins === 0 ? [] : script;
 }
 
 function treesAreSame(a, b) {

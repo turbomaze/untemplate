@@ -70,7 +70,7 @@ describe ('untemplate',  () => {
       expect(templatesMatch(expectedTemplate, template)).toEqual(true);
     });
 
-    it ('should consider children regardless of argument order',  () => {
+    fit ('should consider children regardless of argument order',  () => {
       const examples = [`
         <div><span> example 2 </span><span><div> example 3</div></span></div>
       `, `
@@ -87,7 +87,7 @@ describe ('untemplate',  () => {
       expect(templatesMatch(expectedTemplate, template)).toEqual(true);
     });
 
-    fit ('should consider more than three children',  () => {
+    it ('should consider more than three children',  () => {
       const examples = [`
         <div>
           <span> example 1 </span>
