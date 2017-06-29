@@ -1,4 +1,4 @@
-import { _ } from 'lodash';
+import _ from 'lodash';
 import {
   templatesMatch, parseTemplate, getNonEmptyChildren, number,
   parseHtml, isElement, isTextNode, isOptional

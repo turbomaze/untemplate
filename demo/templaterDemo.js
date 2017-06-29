@@ -63,7 +63,10 @@ var TemplaterDemo = (function() {
     if (examples.length > 0) {
       addExample();
       var template = untemplate.deduceTemplate(examples);
-      $('#template').innerHTML = escapeHtml(html_beautify(template, {indent_size: 2}))
+      var longhandTemplate = template.replace(/\?>/g, ' optional="true">');
+      var beautifiedTemplate = html_beautify(longhandTemplate, {indent_size: 2});
+      var escapedTemplate = escapeHtml(beautifiedTemplate);
+      var prettyTemplate = escapedTemplate
         .split('\n')
         .map(function(line) {
           var numSpaces = (line.match(/^ +/g) || [''])[0].length;
@@ -72,7 +75,9 @@ var TemplaterDemo = (function() {
           return line.replace(/^ +/g, nbsps);
         })
         .join('<br>')
-        .replace(/<br><br>/g, '<br>');
+        .replace(/<br><br>/g, '<br>')
+        .replace(/ optional="true"/g, '<span style="color: red">?</span>');
+      $('#template').innerHTML = prettyTemplate;
     }
   }
 
