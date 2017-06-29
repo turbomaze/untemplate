@@ -1,5 +1,4 @@
 import { DOMParser } from 'xmldom';
-import _ from 'lodash';
 import sha1 from 'object-hash';
 import {
   parseTemplate, getNonEmptyChildren, number,
@@ -17,7 +16,8 @@ export function untemplate (dsl, element) {
 }
 
 function find(template, element) {
-  // iterate all possible combinations of optionals in O(2^numOptionals)
+  // iterate all possible combinations of optionals in O(n * 2^numOptionals)
+  // NOTE: it's possible to get rid of the factor of n if necessary
   const numOptionals = countOptionals(template);
   const labeledTemplate = labelOptionals(template);
   const annotatedTemplate = annotateTemplate(labeledTemplate);

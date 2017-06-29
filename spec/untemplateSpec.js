@@ -426,19 +426,19 @@ describe ('untemplate',  () => {
           <div>
             <div> {{ letter1 }} </div>
             <div> {{ letter2 }} </div>
-            <div> {{ letter3 }} </div>
+            <div?> {{ letter3 }} </div>
             <div?> {{ letter4 }} </div>
           </div>
           <div?>
             <div> {{ letter5 }} </div>
-            <div?> {{ letter6 }} </div>
+            <div> {{ letter6 }} </div>
             <div?> {{ letter7 }} </div>
             <div?> {{ letter8 }} </div>
           </div>
           <div?>
             <div> {{ letter9 }} </div>
             <div> {{ letter10 }} </div>
-            <div> {{ letter11 }} </div>
+            <div?> {{ letter11 }} </div>
             <div?> {{ letter12 }} </div>
           </div>
           <div?>
@@ -453,15 +453,9 @@ describe ('untemplate',  () => {
 
       expect(structuredData.length).toEqual(1);
       expect(structuredData[0]).toEqual({
-        letter1: 'a',
-        letter2: 'b',
-        letter3: 'c',
-        letter5: 'd',
-        letter6: 'e',
-        letter7: 'f',
-        letter9: 'g',
-        letter10: 'h',
-        letter11: 'i'
+        letter1: 'a', letter2: 'b', letter3: 'c',
+        letter5: 'd', letter6: 'e', letter7: 'f',
+        letter9: 'g', letter10: 'h', letter11: 'i'
       });
     });
   });

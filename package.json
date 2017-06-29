@@ -13,9 +13,9 @@
     "babel-loader": "^7.1.0",
     "babel-preset-env": "^1.5.2",
     "babel-register": "^6.24.1",
-    "babelify": "^7.3.0",
     "jasmine": "^2.6.0",
     "js-beautify": "^1.6.14",
+    "lodash-loader": "^1.0.1",
     "webpack": "^3.0.0"
   },
   "dependencies": {
