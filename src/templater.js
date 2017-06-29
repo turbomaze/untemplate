@@ -25,6 +25,8 @@ export function deduceTemplate(examples) {
   const deducedStructure = reconcileTrees(trees);
   const structureWithProperties = treeWithPropertySelectors(deducedStructure);
   const maximalDsl = convertTreeToString(structureWithProperties);
+  return maximalDsl;
+  /*
   const exampleValues = examples.map((ex) => {
     return untemplate(maximalDsl, parseHtml(ex));
   });
@@ -37,6 +39,7 @@ export function deduceTemplate(examples) {
   );
   const dsl = convertTreeToString(template);
   return dsl;
+  */
 }
 
 // postcondition: returns a json object with the following fields:
