@@ -1,5 +1,5 @@
 import { DOMParser } from 'xmldom';
-import { _ } from 'lodash';
+import _ from 'lodash';
 
 // constants
 const PARSER = new DOMParser();

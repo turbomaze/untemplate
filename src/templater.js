@@ -1,5 +1,5 @@
 import { XMLSerializer } from 'xmldom';
-import { _ } from 'lodash';
+import _ from 'lodash';
 import {
   getNonEmptyChildren, number,
   parseHtml, isElement, isTextNode, isOptional

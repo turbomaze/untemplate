@@ -3,23 +3,20 @@ var path = require('path');
 var UglifyJsPlugin = webpack.optimize.UglifyJsPlugin;
 var env = process.env.WEBPACK_ENV;
 
-var libraryName = 'untemplate';
 var plugins = [], outputFile;
 
-if (env === 'build') {
-  plugins.push(new UglifyJsPlugin({ minimize: true }));
-  outputFile = libraryName + '.min.js';
-} else {
-  outputFile = libraryName + '.js';
-}
+plugins.push(new UglifyJsPlugin({ minimize: true }));
 
 var config = {
-  entry: __dirname + '/src/index.js',
+  entry: {
+    untemplate: path.join(__dirname, '/src/index.js'),
+    demo: path.join(__dirname, '/demo/templaterDemo.js'),
+  },
   devtool: 'source-map',
   output: {
-    path: __dirname + '/lib',
-    filename: outputFile,
-    library: libraryName,
+    path: path.join(__dirname, 'lib'),
+    filename: '[name].min.js',
+    library: 'untemplate',
     libraryTarget: 'umd',
     umdNamedDefine: true
   },
