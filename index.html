@@ -5,9 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <link href="https://fonts.googleapis.com/css?family=Karma" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/solarized-light.min.css" rel="stylesheet">
 
   <title> untemplate.js </title>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js">
+  </script>
   <script src="demo/demo.min.js"></script>
 
   <style>
@@ -46,6 +49,7 @@
       margin-top: 0.5rem;
       margin-bottom: 1rem;
       display: block;
+      outline: none;
     }
 
     code.inline {
@@ -166,7 +170,7 @@
       Replace all the text with <code class="inline">{{ propertyNames }}</code>.
     </p>
 
-    <code id="template"></code>
+    <code id="template" class="html" contenteditable="true"></code>
   </div>
 </body>
 </html>

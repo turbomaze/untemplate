@@ -76,8 +76,9 @@ var TemplaterDemo = (function() {
         })
         .join('<br>')
         .replace(/<br><br>/g, '<br>')
-        .replace(/ optional="true"/g, '<span style="color: red">?</span>');
+        .replace(/ optional="true"/g, '<b style="margin-left: 0.5rem">?</b>');
       $('#template').innerHTML = prettyTemplate;
+      hljs.highlightBlock($('#template'));
     }
   }
 
