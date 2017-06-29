@@ -45,23 +45,13 @@ export function deduceTemplate(examples) {
 function annotateTree (element) {
   if (!isElement(element)) return false;
 
-  if (!element.firstChild) {
-    return {
-      type: element.tagName.toLowerCase(),
-      children: [],
-      numDescendants: 0
-    };
-  } else {
-    const children = getNonEmptyChildren(element).map(annotateTree)
-      .filter((a) => { return !!a; });
-    return {
-      type: element.tagName.toLowerCase(),
-      children: children,
-      numDescendants: children.reduce((sum, child) => {
-        return sum + child.numDescendants;  
-      }, children.length)
-    };
-  }
+  const children = getNonEmptyChildren(element)
+    .map(annotateTree)
+    .filter((a) => { return !!a; });
+  return {
+    type: element.tagName.toLowerCase(),
+    children: children
+  };
 }
 
 // postcondition: returns a new tree that's a copy with the following field
@@ -228,7 +218,7 @@ function _applyScriptInstruction(tree, A, B, instruction) {
     tree.children.push(B.children[instruction.source]);
   } else if (instruction.type === JOIN) {
     tree.children.push(A.children[instruction.source]);
-  } else {
+  } else if (instruction.type === MODIFY) { // always issued with a `.script`
     tree.children.push(
       applyScriptToTrees(
         A.children[instruction.source],
@@ -236,7 +226,10 @@ function _applyScriptInstruction(tree, A, B, instruction) {
         instruction.script
       )
     );
+  } else {
+    throw new Error('unexpected instruction type');
   }
+
   return false;
 }
 
