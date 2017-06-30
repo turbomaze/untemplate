@@ -1,98 +1,111 @@
-var untemplate = require('../src/index');
-var html_beautify = require('js-beautify').html;
+// @flow
 
-var TemplaterDemo = (function() {
+const untemplate = require('../src/index');
+const html_beautify = require('js-beautify').html;
+
+const TemplaterDemo = (function() {
   // constants
-  var PREVIEW_LENGTH = 100;
+  const PREVIEW_LENGTH: number = 100;
 
   // state
-  var examples = [];
+  const examples = [];
     
-  function initTemplaterDemo() {
-    $('#example-html').addEventListener('keydown', function(e) {
+  function initTemplaterDemo(): void {
+    const exampleInput: HTMLInputElement = ($('example-html'): any);
+    exampleInput.addEventListener('keydown', function(e: KeyboardEvent) {
       if (e.key === 'Enter') {
         addExample();
-        $('#example-html').value = '';
+        const exampleInput: HTMLInputElement = ($('example-html'): any);
+        exampleInput.value = '';
         return false;
       }
     });
 
-    $('#add-example-btn').addEventListener('click', function() {
+    const exampleButton: HTMLButtonElement = ($('add-example-btn'): any);
+    exampleButton.addEventListener('click', function() {
       addExample();
     });
 
-    $('#clear-btn').addEventListener('click', clear);
+    const clearButton: HTMLButtonElement = ($('clear-btn'): any);
+    clearButton.addEventListener('click', clear);
 
-    $('#generate-template-btn').addEventListener('click', function() {
+    const generateButton: HTMLButtonElement = ($('generate-template-btn'): any);
+    generateButton.addEventListener('click', function() {
       generateTemplate();
     });
   }
 
   function addExample() {
-    var example = $('#example-html').value;
+    const exampleInput: HTMLInputElement = ($('example-html'): any);
+    const example = exampleInput.value;
     if (example.trim() !== '') {
       examples.push(example.trim());
-      $('#example-html').value = '';
+      exampleInput.value = '';
       render();
     }
   }
 
   // render example prefixes on the page
   function render() {
-    $('#examples').innerHTML = '';
+    const examplesList: HTMLElement = ($('examples'): any);
+    examplesList.innerHTML = '';
     examples.forEach(function(example) {
-      var li = document.createElement('li'); 
+      const li = document.createElement('li'); 
       li.className = 'example';
       li.title = example;
       li.innerHTML = escapeHtml(example.substring(0, PREVIEW_LENGTH));
       if (example.length > PREVIEW_LENGTH) {
         li.innerHTML += ' ...';
       }
-      $('#examples').appendChild(li);
+      examplesList.appendChild(li);
     });
   }
 
   // clear the examples and rerender the page
   function clear() {
-    examples = [];
-    $('#example-html').value = '';
+    examples.splice(0, examples.length);
+    const exampleInput: HTMLInputElement = ($('example-html'): any);
+    exampleInput.value = '';
     render();
   }
 
   function generateTemplate() {
     if (examples.length > 0) {
       addExample();
-      var template = untemplate.deduceTemplate(examples);
-      var longhandTemplate = template.replace(/\?>/g, ' optional="true">');
-      var beautifiedTemplate = html_beautify(longhandTemplate, {indent_size: 2});
-      var escapedTemplate = escapeHtml(beautifiedTemplate);
-      var prettyTemplate = escapedTemplate
+      const template = untemplate.deduceTemplate(examples);
+      const longhandTemplate = template.replace(/\?>/g, ' optional="true">');
+      const beautifiedTemplate = html_beautify(longhandTemplate, {indent_size: 2});
+      const escapedTemplate = escapeHtml(beautifiedTemplate);
+      const prettyTemplate = escapedTemplate
         .split('\n')
         .map(function(line) {
-          var numSpaces = (line.match(/^ +/g) || [''])[0].length;
-          var nbsps = '';
-          for (var i = 0; i < numSpaces; i++) nbsps += '&nbsp;';
+          const numSpaces = (line.match(/^ +/g) || [''])[0].length;
+          let nbsps = '';
+          for (let i = 0; i < numSpaces; i++) nbsps += '&nbsp;';
           return line.replace(/^ +/g, nbsps);
         })
         .join('<br>')
         .replace(/<br><br>/g, '<br>')
         .replace(/ optional="true"/g, '<b style="margin-left: 0.5rem">?</b>');
-      $('#template').innerHTML = prettyTemplate;
-      hljs.highlightBlock($('#template'));
+      const templateNode: HTMLElement = ($('template'): any);
+      templateNode.innerHTML = prettyTemplate;
+
+      // $FlowFixMe
+      hljs.highlightBlock($('template')); // included via `index.html`
     }
   }
 
   // from https://stackoverflow.com/questions/6234773
   //   /can-i-escape-html-special-chars-in-javascript
   function escapeHtml(html) {
-    var text = document.createTextNode(html);
-    var div = document.createElement('div');
+    const text = document.createTextNode(html);
+    const div = document.createElement('div');
     div.appendChild(text);
     return div.innerHTML;
   }
 
-  function $(id) {
-    return document.getElementById(id.substring(1));
+  function $(id: string): ?HTMLElement {
+    return document.getElementById(id);
   }
 
   return {

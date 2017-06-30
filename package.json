@@ -7,12 +7,15 @@
   "license": "MIT",
   "scripts": {
     "test": "jasmine",
-    "build": "WEBPACK_ENV=build webpack"
+    "build": "WEBPACK_ENV=build webpack",
+    "flow": "flow; test $? -eq 0 -o $? -eq 2"
   },
   "devDependencies": {
     "babel-loader": "^7.1.0",
+    "babel-plugin-transform-flow-strip-types": "^6.22.0",
     "babel-preset-env": "^1.5.2",
     "babel-register": "^6.24.1",
+    "flow-bin": "^0.49.1",
     "jasmine": "^2.6.0",
     "js-beautify": "^1.6.14",
     "lodash-loader": "^1.0.1",

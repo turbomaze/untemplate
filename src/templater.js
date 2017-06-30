@@ -1,24 +1,44 @@
+// @flow
+
 import { XMLSerializer } from 'xmldom';
 import _ from 'lodash';
 import {
   getNonEmptyChildren, number,
   parseHtml, isElement, isTextNode, isOptional
 } from './utils';
+import type { ElementDomNode } from './utils';
 import { untemplate } from './untemplate';
 
 // constants
 const SERIALIZER = new XMLSerializer();
-const NO_PARENT = 'none';
-const DIAGONAL = 'diagonal';
-const ABOVE = 'above';
-const LEFT = 'left';
-const ADD_A = 'add a';
-const ADD_B = 'add b';
-const MODIFY = 'modify';
-const JOIN = 'join';
 const TIE_BREAKER = 1.000001; // biases the optimization to more intuitive templates
 
-export function deduceTemplate(examples) {
+// types
+type AddInstruction = {
+  type: 'add a' | 'add b',
+  source: number
+};
+type JoinInstruction = {
+  type: 'join',
+  source: number,
+  target: number
+};
+type ModifyInstruction = {
+  type: 'modify',
+  source: number,
+  target: number,
+  script: Script
+};
+type Instruction = AddInstruction | JoinInstruction | ModifyInstruction;
+type Script = Instruction[];
+type NormalMove = { direction: 'none' | 'left' | 'above' };
+type DiagonalMove = {
+  direction: 'diagonal',
+  script: Script
+};
+type Move = NormalMove | DiagonalMove;
+
+export function deduceTemplate(examples: string[]) {
   const trees = examples.map((ex) => {
     return number(countDescendants(annotateTree(parseHtml(ex))));
   });
@@ -45,11 +65,12 @@ export function deduceTemplate(examples) {
 function annotateTree (element) {
   if (!isElement(element)) return false;
 
-  const children = getNonEmptyChildren(element)
+  const element_: ElementDomNode = (element: any);
+  const children = getNonEmptyChildren(element_)
     .map(annotateTree)
     .filter((a) => { return !!a; });
   return {
-    type: element.tagName.toLowerCase(),
+    type: element_.tagName.toLowerCase(),
     children: children
   };
 }
@@ -114,11 +135,11 @@ function getLoss(A, B) {
       const lossFromAddingB = pi[i+1][j] + bChild.numDescendants + 1;
       pi[i+1][j+1] = Math.min(lossFromUpdating, lossFromAddingA, lossFromAddingB);
       if (lossFromUpdating < Math.min(lossFromAddingA, lossFromAddingB)) {
-        moves[i+1][j+1] = {direction: DIAGONAL, script: updateLossAndScript.script};
+        moves[i+1][j+1] = {direction: 'diagonal', script: updateLossAndScript.script};
       } else if (lossFromAddingA < lossFromAddingB){
-        moves[i+1][j+1] = {direction: ABOVE};
+        moves[i+1][j+1] = {direction: 'above'};
       } else {
-        moves[i+1][j+1] = {direction: LEFT};
+        moves[i+1][j+1] = {direction: 'left'};
       }
     }
   }
@@ -135,66 +156,87 @@ function initEditScriptDpTables(A, B) {
     pi.push([]), moves.push([]);
     for (let j = 0; j < n + 1; j++) {
       pi[i].push(0);
-      moves[i].push({direction: NO_PARENT});
+      moves[i].push({direction: 'none'});
     }
   }
   if (A.type !== B.type) pi[0][0] = Infinity;
 
   for (let i = 0; i < m; i++) {
     pi[i + 1][0] = pi[i][0] + A.children[i].numDescendants + 1;
-    moves[i + 1][0] = {direction: ABOVE};
+    moves[i + 1][0] = {direction: 'above'};
   }
   for (let j = 0; j < n; j++) {
     pi[0][j + 1] = pi[0][j] + B.children[j].numDescendants + 1;
-    moves[0][j + 1] = {direction: LEFT};
+    moves[0][j + 1] = {direction: 'left'};
   }
   return {pi: pi, moves: moves};
 }
 
-function recoverEditScriptFromTables(pi, moves) {
+function recoverEditScriptFromTables(pi, moves: Move[][]) {
   // recover the edit script from the predecessor tables
-  const script = [];
+  const script: Instruction[] = [];
   let I = pi.length - 1, J = pi[0].length - 1;
   while (I !== 0 || J !== 0) {
-    const predecessor = moves[I][J];
-    if (predecessor.direction === ABOVE) {
-      script.unshift(makeEditScriptStep(ADD_A, --I));
-    } else if (predecessor.direction === LEFT) {
-      script.unshift(makeEditScriptStep(ADD_B, --J));
+    const predecessor: Move = moves[I][J];
+    if (predecessor.direction === 'above') {
+      script.unshift(makeEditScriptStep('add a', --I));
+    } else if (predecessor.direction === 'left') {
+      script.unshift(makeEditScriptStep('add b', --J));
+    } else if (predecessor.direction === 'diagonal') {
+      const diagonalMove: DiagonalMove = (predecessor: any);
+      script.unshift(makeEditScriptStep('modify', --I, --J, diagonalMove.script));
     } else {
-      script.unshift(makeEditScriptStep(MODIFY, --I, --J, predecessor.script));
+      throw new Error('unexpected movement direction');
     }
   }
 
   return script;
 }
 
-function makeEditScriptStep(type, source, target, script) {
+function makeEditScriptStep(type, source: number, target?: number, script?): Instruction {
   if (arguments.length === 4) {
-    if (script.length === 0) {
-      return {type: JOIN, source: source, target: target};
+    const target_: number = (target: any);
+    const script_: Script = (script: any);
+    if (script_.length === 0) {
+      return makeJoinInstruction(source, target_);
     } else {
-      const optimizedScript = optimizeScript(script);
+      const optimizedScript = optimizeScript(script_);
       if (optimizedScript.length === 0) {
-        return {type: JOIN, source: source, target: target};
+        return makeJoinInstruction(source, target_);
       } else {
-        return {type: type, source: source, target: target, script: script};
+        return makeModifyInstruction(source, target_, script_);
       }
     }
   } else {
-    return {type: type, source: source};
+    return makeAddInstruction(type, source);
   }
 }
 
+function makeAddInstruction(type, source): AddInstruction {
+  if (type === 'add a' || type === 'add b') {
+    return {type, source};
+  } else {
+    throw new Error('unexpected add instruction type');
+  }
+}
+
+function makeJoinInstruction(source, target): JoinInstruction {
+  return {type: 'join', source, target};
+}
+
+function makeModifyInstruction(source, target, script): ModifyInstruction {
+  return {type: 'modify', source, target, script};
+}
+
 function optimizeScript(script) {
-  const numNonJoins = script.filter(x => x.type !== JOIN).length;
+  const numNonJoins = script.filter(x => x.type !== 'join').length;
   return numNonJoins === 0 ? [] : script;
 }
 
 // preconditions:
 // - treeA.type === treeB.type
 // - script was created for the context of treeA and treeB
-function applyScriptToTrees(treeA, treeB, script) {
+function applyScriptToTrees(treeA, treeB, script: Script) {
   const A = _.cloneDeep(treeA);
   const B = _.cloneDeep(treeB);
   const children = [];
@@ -209,16 +251,16 @@ function applyScriptToTrees(treeA, treeB, script) {
 // postconditions:
 // - modifies the input tree** by the given instruction
 // - also modifies trees A and B**
-function _applyScriptInstruction(tree, A, B, instruction) {
-  if (instruction.type === ADD_A) {
+function _applyScriptInstruction(tree, A, B, instruction: Instruction) {
+  if (instruction.type === 'add a') {
     A.children[instruction.source].optional = true;
     tree.children.push(A.children[instruction.source]);
-  } else if (instruction.type === ADD_B) {
+  } else if (instruction.type === 'add b') {
     B.children[instruction.source].optional = true;
     tree.children.push(B.children[instruction.source]);
-  } else if (instruction.type === JOIN) {
+  } else if (instruction.type === 'join') {
     tree.children.push(A.children[instruction.source]);
-  } else if (instruction.type === MODIFY) { // always issued with a `.script`
+  } else if (instruction.type === 'modify') { // always issued with a `.script`
     tree.children.push(
       applyScriptToTrees(
         A.children[instruction.source],
@@ -285,13 +327,15 @@ function insertValuesIntoProperties(tree, values) {
 
   if (copy.type === 'text') {
     const keyMatch = copy.value.match(/{{(.+)}}/);
-    const keyName = !!keyMatch ? keyMatch[1].trim() : false;
-    if (values[keyName]) {
-      copy.value = values[keyName];
-      return copy;
-    } else {
-      throw new NoPropertiesError();
+    if (!!keyMatch) {
+      const keyName = keyMatch[1].trim();
+      if (values[keyName]) {
+        copy.value = values[keyName];
+        return copy;
+      }
     }
+
+    throw new NoPropertiesError();
   } else {
     const children = [];
     for (let i = 0; i < tree.children.length; i++) {
@@ -325,7 +369,7 @@ function convertTreeToString(tree) {
 }
 
 export class UnresolveableExamplesError extends Error {
-  constructor(...args) {
+  constructor(...args: any) {
     super(...args)
     this.name = 'UnresolveableExamplesError';
     Error.captureStackTrace(this, UnresolveableExamplesError);

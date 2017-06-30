@@ -1,39 +1,54 @@
+// @flow
+
 import { DOMParser } from 'xmldom';
 import sha1 from 'object-hash';
 import {
   parseTemplate, getNonEmptyChildren, number,
   parseHtml, isElement, isTextNode, isOptional
 } from './utils';
+import type { DomNode, ElementDomNode, AnnotatedTree } from './utils';
+
+// types
+type AnnotatedDomNode = {
+  type: string,
+  dom: DomNode,
+  children: AnnotatedDomNode[],
+  hash: string
+};
+type AnnotatedTemplate = {
+  type: string,
+  children: AnnotatedTemplate[],
+  optionalNumber: number
+};
 
 // preconditions:
 // - dsl is a well-formatted template string
 // - element is a dom node
 // postconditions:
 // - return list of assoc arrays from template properties to values
-export function untemplate (dsl, element) {
+export function untemplate (dsl: string, element: DomNode) {
   const template = parseTemplate(dsl);
   return find(template, element);
 }
 
-function find(template, element) {
+function find(template: DomNode, element: DomNode) {
   // iterate all possible combinations of optionals in O(n * 2^numOptionals)
   // NOTE: it's possible to get rid of the factor of n if necessary
   const numOptionals = countOptionals(template);
   const labeledTemplate = labelOptionals(template);
-  const annotatedTemplate = annotateTemplate(labeledTemplate);
+  const annotatedTemplate_: AnnotatedTemplate = (annotateTemplate(labeledTemplate): any);
   const needles = {};
   for (let i = 0; i < Math.pow(2, numOptionals); i++) {
     const hidden = {};
     for (let j = 0; j < numOptionals; j++) hidden[j] = (i >> j) % 2;
-    const hiddenTemplateHash = hashAnnotatedTemplate(annotatedTemplate, hidden);
+    const hiddenTemplateHash = hashAnnotatedTemplate(annotatedTemplate_, hidden);
     needles[hiddenTemplateHash] = hidden;
   }
 
   // search the tree in O(n) where n is number of nodes
-  const haystack = number(annotateDom(element));
-  const allMatches = findWithHashes(labeledTemplate, needles, haystack);
-
-  return Object.keys(allMatches).map((key) => { return allMatches[key]; });
+  const annotatedElement: AnnotatedTree = (annotateDom(element): any);
+  const haystack = number(annotatedElement);
+  return findWithHashes(labeledTemplate, needles, haystack);
 }
 
 function countOptionals(template) {
@@ -45,28 +60,32 @@ function countOptionals(template) {
 }
 
 function labelOptionals (template) {
-  const labeledTemplate = template.cloneNode(true);
+  const labeledTemplate_: ElementDomNode = (template.cloneNode(true): any);
   let index = 0;
-  let stack = [labeledTemplate];
+  let stack = [labeledTemplate_];
   while (stack.length > 0) {
     const node = stack.shift();
-    if (isElement(node) && isOptional(node)) {
-      node.setAttribute('optionalNumber', index++);
+    if (isElement(node)) {
+      const node_: ElementDomNode = (node: any);
+      if (isOptional(node_)) {
+        node_.setAttribute('optionalNumber', index++);
+      }
+      stack = getNonEmptyChildren(node_).concat(stack);
     }
-    stack = getNonEmptyChildren(node).concat(stack);
   }
-  return labeledTemplate;
+  return labeledTemplate_;
 }
 
 // produce an abstract representation of the template, including optional numbers
 // preconditions: template has its optionals labeled
-function annotateTemplate (template) {
-  if (!isElement(template)) return false;
+function annotateTemplate (template): ?AnnotatedTemplate {
+  if (!isElement(template)) return null;
 
-  const type = template.tagName.toLowerCase();
-  const children = getNonEmptyChildren(template).map(annotateTemplate)
+  const template_: ElementDomNode = (template: any);
+  const type = template_.tagName.toLowerCase();
+  const children = getNonEmptyChildren(template_).map(annotateTemplate)
     .filter((a) => { return !!a; });
-  const optionalNumber = parseInt(template.getAttribute('optionalNumber'));
+  const optionalNumber = parseInt(template_.getAttribute('optionalNumber'));
   return { type, children, optionalNumber };
 }
 
@@ -89,9 +108,9 @@ function hashAnnotatedTemplate (annotatedTemplate, hidden) {
 //   hash: its hash,
 //   children: child nodes
 // }
-function annotateDom (dom) {
-  if (!isElement(dom)) return false;
-  else if (isHidden(dom)) return false;
+function annotateDom (dom): ?AnnotatedDomNode {
+  if (!isElement(dom)) return null;
+  else if (isHidden(dom)) return null;
 
   const type = dom.tagName.toLowerCase();
   const children = getNonEmptyChildren(dom).map(annotateDom)
@@ -111,12 +130,12 @@ function findWithHashes (template, needles, haystack) {
     if (treesMatch(annotatedTemplate, haystack)) {
       return [applyTemplate(hiddenTemplate, haystack.dom)];
     }
-  } else {
-    // 2. else, recurse on children, returning the concatenation of their results
-    return haystack.children.reduce((results, child) => {
-      return results.concat(findWithHashes(template, needles, child));
-    }, []);
   }
+
+  // 2. else, recurse on children, returning the concatenation of their results
+  return haystack.children.reduce((results, child) => {
+    return results.concat(findWithHashes(template, needles, child));
+  }, []);
 }
 
 function treesMatch (a, b) {
@@ -163,9 +182,9 @@ function _applyTemplate (template, element, state) {
   }
 }
 
-function hideOptionals(template, pattern) {
-  const hiddenTemplate = template.cloneNode(true);
-  let stack = [hiddenTemplate];
+function hideOptionals(template: ElementDomNode, pattern): void {
+  const hiddenTemplate_: ElementDomNode = (template.cloneNode(true): any);
+  let stack = [hiddenTemplate_];
   while (stack.length > 0) {
     const node = stack.shift();
     if (isElement(node) && isOptional(node)) {
@@ -173,12 +192,13 @@ function hideOptionals(template, pattern) {
       const hiddenValue = pattern[optionalNumber] ? 'true' : 'false';
       node.setAttribute('optionalHidden', hiddenValue);
     }
-    stack = getNonEmptyChildren(node).concat(stack);
+    const node_: ElementDomNode = (node: any);
+    stack = getNonEmptyChildren(node_).concat(stack);
   }
-  return hiddenTemplate;
+  return hiddenTemplate_;
 }
 
-function addProperty(state, key, value) {
+function addProperty(state: {}, key: string, value: number): void {
   if (state.hasOwnProperty(key)) {
     if (!Array.isArray(state[key])) state[key] = [state[key]];
     state[key].push(value);
@@ -187,6 +207,6 @@ function addProperty(state, key, value) {
   }
 }
 
-function isHidden(element) {
+function isHidden(element): boolean {
   return isElement(element) && element.getAttribute('optionalHidden') === 'true';
 }
