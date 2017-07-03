@@ -25,5 +25,9 @@
     "lodash": "^4.17.4",
     "object-hash": "^1.1.8",
     "xmldom": "^0.1.27"
+  },
+  "repository" : {
+    "type" : "git",
+    "url" : "https://github.com/finventures/untemplate.git"
   }
 }
