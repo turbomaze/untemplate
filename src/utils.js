@@ -4,10 +4,10 @@ import { DOMParser } from 'xmldom';
 import _ from 'lodash';
 
 // constants
-// TODO: fix hardcoded magic numbers
 const PARSER = new DOMParser();
-const ELEMENT_NODE = 1;
-const TEXT_NODE = 3;
+const DIV = PARSER.parseFromString('<div> hello </div>', 'text/xml').firstChild;
+const ELEMENT_NODE = DIV.nodeType;
+const TEXT_NODE = DIV.firstChild.nodeType;
 
 // types
 type BasicDomNode = {
@@ -17,11 +17,11 @@ type BasicDomNode = {
   setAttribute: (name: string, value: string | number | boolean) => ?string,
 };
 export type TextDomNode = BasicDomNode & {
-  nodeType: 3, // TEXT_NODE
+  nodeType: TEXT_NODE,
   nodeValue: string
 };
 export type ElementDomNode = BasicDomNode & {
-  nodeType: 1, // ELEMENT_NODE
+  nodeType: ELEMENT_NODE,
   tagName: string
 };
 export type DomNode = TextDomNode | ElementDomNode;
@@ -76,7 +76,8 @@ export function getNonEmptyChildren(element: DomNode): DomNode[] {
   });
 }
 
-// postcondition: return new tree with same nodes but numbered on the `index` key
+// postconditions:
+// - return new tree with same nodes but numbered on the `index` key
 export function number(tree: AnnotatedTree) {
   const numberedTree = _.cloneDeep(tree);
   let index = 0;

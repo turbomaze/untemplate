@@ -81,7 +81,7 @@ function labelOptionals (template): ElementDomNode {
   return labeledTemplate_;
 }
 
-// produce an abstract representation of the template, including optional numbers
+// produce an abstract repr of the template, including optional numbers
 // preconditions:
 // - template has its optionals labeled; isElement(template) === true
 function annotateTemplate (template): AnnotatedTemplate {
@@ -219,5 +219,6 @@ function addProperty(state: {}, key: string, value: any): void {
 }
 
 function isHidden(element): boolean {
-  return isElement(element) && element.getAttribute('optionalHidden') === 'true';
+  const isElementNode = isElement(element);
+  return isElementNode && element.getAttribute('optionalHidden') === 'true';
 }
