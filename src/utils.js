@@ -4,6 +4,7 @@ import { DOMParser } from 'xmldom';
 import _ from 'lodash';
 
 // constants
+// TODO: fix hardcoded magic numbers
 const PARSER = new DOMParser();
 const ELEMENT_NODE = 1;
 const TEXT_NODE = 3;

@@ -6,7 +6,7 @@ import {
   getNonEmptyChildren, number,
   parseHtml, isElement, isTextNode, isOptional
 } from './utils';
-import type { ElementDomNode } from './utils';
+import type { DomNode, ElementDomNode } from './utils';
 import { untemplate } from './untemplate';
 
 // constants
@@ -37,17 +37,29 @@ type DiagonalMove = {
   script: Script
 };
 type Move = NormalMove | DiagonalMove;
+type AnnotatedTree = {
+  type: string,
+  children: AnnotatedTree[]
+};
+type LossAndScript = {
+  loss: number,
+  script: Script
+}
 
-export function deduceTemplate(examples: string[]) {
+export function deduceTemplate(examples: string[]): string {
   const trees = examples.map((ex) => {
     return number(countDescendants(annotateTree(parseHtml(ex))));
   });
   const deducedStructure = reconcileTrees(trees);
   const structureWithProperties = treeWithPropertySelectors(deducedStructure);
   const maximalDsl = convertTreeToString(structureWithProperties);
-  const exampleValues = examples.map((ex) => {
-    return untemplate(maximalDsl, parseHtml(ex));
-  });
+  const exampleValues = examples
+    .map(ex => parseHtml(ex))
+    .filter(dom => isElement(dom))
+    .map(dom => {
+      const dom_: ElementDomNode = (dom: any);
+      return untemplate(maximalDsl, dom_);
+    });
   const consolidatedValues = consolidateValues(exampleValues.map((value) => {
     // assumption: maximalDsl matches exactly once in each example
     return value[0];
@@ -59,16 +71,11 @@ export function deduceTemplate(examples: string[]) {
   return dsl;
 }
 
-// postcondition: returns a json object with the following fields:
-// - type: the tagname of the element
-// - children: child nodes, recursive
-function annotateTree (element) {
-  if (!isElement(element)) return false;
-
+function annotateTree (element): AnnotatedTree {
   const element_: ElementDomNode = (element: any);
   const children = getNonEmptyChildren(element_)
+    .filter(a => isElement(a))
     .map(annotateTree)
-    .filter((a) => { return !!a; });
   return {
     type: element_.tagName.toLowerCase(),
     children: children
@@ -77,9 +84,11 @@ function annotateTree (element) {
 
 // postcondition: returns a new tree that's a copy with the following field
 // - numDescendants: number of nodes with this node as an ancestor
-function countDescendants(tree) {
+function countDescendants(tree: AnnotatedTree) {
   const treeWithDescendants = _.clone(tree);
-  treeWithDescendants.children = treeWithDescendants.children.map(countDescendants);
+  treeWithDescendants.children = treeWithDescendants.children.map(
+    countDescendants
+  );
   if (treeWithDescendants.children.length === 0) {
     treeWithDescendants.numDescendants = 0;
   } else {
@@ -94,14 +103,14 @@ function countDescendants(tree) {
 // postconditions:
 // - returns a tree
 // - throws UnresolveableExamplesError if the supplied trees are irreconcilable
-function reconcileTrees(trees) {
+function reconcileTrees(trees: AnnotatedTree[]) {
   if (trees.length === 0) throw new UnresolveableExamplesError();
   if (trees.length === 1) return trees[0];
 
   return trees.reduce(reconcileTwoTrees);
 }
 
-function reconcileTwoTrees(treeA, treeB) {
+function reconcileTwoTrees(treeA: AnnotatedTree, treeB: AnnotatedTree) {
   // low hanging fruit
   const A = _.cloneDeep(treeA);
   const B = _.cloneDeep(treeB);
@@ -112,12 +121,14 @@ function reconcileTwoTrees(treeA, treeB) {
   } else {
     // much higher hanging fruit
     const minLossAndEditScript = getLoss(A, B);
-    const reconciliation = applyScriptToTrees(A, B, minLossAndEditScript.script);
+    const reconciliation = applyScriptToTrees(
+      A, B, minLossAndEditScript.script
+    );
     return reconciliation;
   }
 }
 
-function getLoss(A, B) {
+function getLoss(A, B): LossAndScript {
   // init pi table
   const { pi, moves } = initEditScriptDpTables(A, B);
 
@@ -172,7 +183,7 @@ function initEditScriptDpTables(A, B) {
   return {pi: pi, moves: moves};
 }
 
-function recoverEditScriptFromTables(pi, moves: Move[][]) {
+function recoverEditScriptFromTables(pi, moves: Move[][]): Script {
   // recover the edit script from the predecessor tables
   const script: Instruction[] = [];
   let I = pi.length - 1, J = pi[0].length - 1;
@@ -184,7 +195,9 @@ function recoverEditScriptFromTables(pi, moves: Move[][]) {
       script.unshift(makeEditScriptStep('add b', --J));
     } else if (predecessor.direction === 'diagonal') {
       const diagonalMove: DiagonalMove = (predecessor: any);
-      script.unshift(makeEditScriptStep('modify', --I, --J, diagonalMove.script));
+      script.unshift(
+        makeEditScriptStep('modify', --I, --J, diagonalMove.script)
+      );
     } else {
       throw new Error('unexpected movement direction');
     }
@@ -193,7 +206,12 @@ function recoverEditScriptFromTables(pi, moves: Move[][]) {
   return script;
 }
 
-function makeEditScriptStep(type, source: number, target?: number, script?): Instruction {
+function makeEditScriptStep(
+  type,
+  source: number,
+  target?: number,
+  script?
+): Instruction {
   if (arguments.length === 4) {
     const target_: number = (target: any);
     const script_: Script = (script: any);
@@ -275,7 +293,7 @@ function _applyScriptInstruction(tree, A, B, instruction: Instruction) {
   return false;
 }
 
-function treesAreSame(a, b) {
+function treesAreSame(a, b): boolean {
   if (!hasSameRoot(a, b)) return false;
   if (a.children.length !== b.children.length) return false;
 
@@ -313,7 +331,9 @@ function consolidateValues(values) {
   values.forEach((value) => {
     Object.keys(value).forEach((key) => {
       if (!union.hasOwnProperty(key)) union[key] = [];
-      const valueToInsert = Array.isArray(value[key]) ? value[key] : [value[key]];
+      const valueToInsert = Array.isArray(value[key])
+        ? value[key]
+        : [value[key]];
       union[key].push(valueToInsert.join(', '));
     })
   });
@@ -321,7 +341,7 @@ function consolidateValues(values) {
 }
 
 // postconditions:
-// - throws NoPropertiesError if tree is a textnode whose property is not in values
+// - throws NoPropertiesError if tree is a textnode whose property is !in values
 function insertValuesIntoProperties(tree, values) {
   const copy = _.clone(tree);
 
@@ -351,7 +371,7 @@ function insertValuesIntoProperties(tree, values) {
   }
 }
 
-function convertTreeToString(tree) {
+function convertTreeToString(tree): string {
   if (tree.type === 'text') {
     return tree.value;
   } else {
