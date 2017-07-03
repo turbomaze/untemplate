@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="https://fonts.googleapis.com/css?family=Karma" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/solarized-light.min.css" rel="stylesheet">
+
+  <title> untemplate.js </title>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js">
+  </script>
+  <script src="demo/demo.min.js"></script>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Karma', sans-serif;
+      padding-top: 3rem;
+    }
+
+    h1 {
+      font-size: 3rem;
+    }
+
+    h2 {
+      font-size: 1.5rem;
+    }
+
+    .container {
+      width: 960px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    section {
+      font-size: 1.25rem;
+    }
+
+    code {
+      background: linear-gradient(5deg, #efefef 0%, #e9f1f6 100%);
+      padding: 1rem;
+      margin-top: 0.5rem;
+      margin-bottom: 1rem;
+      display: block;
+      outline: none;
+    }
+
+    code.inline {
+      display: inline;
+      padding: 0.125rem 1rem;
+    }
+
+    .underlined {
+      border-bottom: 1px solid #efefef;
+      padding-bottom: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    a {
+      text-decoration: none;
+      color: #999;
+    }
+
+    input[type="text"] {
+      height: 2rem;
+      width: 100%;
+      padding: 1rem 1.5rem;
+      font-size: 1.5rem;
+      margin-top: 1rem;
+      font-family: Monospace;
+      margin-bottom: 1rem;
+    }
+
+    a.button {
+      color: #efefef;
+      background: #417aba;
+      padding: 0.25rem 1rem;
+      height: 2rem;
+      line-height: 1.5rem;
+      font-family: 'Karma', sans-serif;
+      font-size: 1.125rem;
+      border: 1px solid #417aba;
+      cursor: pointer;
+      border-radius: 3px;
+      user-select: none;
+      text-align: center;
+    }
+
+    a.button:hover {
+      text-decoration: underline;
+    }
+
+    a.button:active {
+      background: linear-gradient(5deg, #619ada 0%, #417aba 100%);
+    }
+
+    ul {
+      list-style: none;
+      font-family: Monospace;
+    }
+
+    p {
+      font-size: 1.25rem;
+    }
+
+    code#template {
+      font-size: 1.25rem;
+    }
+
+    li {
+      margin: 1rem 0 0.5rem;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        width: 100%;
+        padding: 0 1rem;
+      }
+
+      a {
+        display: block;
+        margin-top: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="underlined">
+      <h1>untemplate.js</h1>
+      
+      <h2>
+        This module helps you scrape structured information from websites
+        with HTML templates. <a href="https://github.com/finventures/untemplate">Read more &rarr;</a>
+      </h2>
+    </header>
+      
+    <section class="underlined">
+      <p>Templating engines like handlebars/jade:</p>
+      <code>{ structured: 'info' } + {{ template }} = &lt;html&gt;</code>
+      <p>This module:</p>
+      <code>&lt;html&gt; - {{ template }} = { structured: 'info' }</code>
+    </section>
+
+    <section class="underlined">
+      <p>
+        This tool provides an interface for the
+        <code class="inline">#deduceTemplate</code>
+        function. Copy and paste HTML snippets of components you want to
+        scrape in the field below. Add a handful of diverse examples to get a robust
+        template.
+      </p>
+      <ul id="examples"></ul>
+      <input type="text" id="example-html" placeholder="HTML goes here"/>
+      <a class="button" id="add-example-btn">add example</a>
+      <a class="button" id="clear-btn">clear</a>
+      <a class="button" id="generate-template-btn">generate template</a>
+    </section>
+
+    <h2> Template </h2>
+
+    <p>
+      Replace all the text with <code class="inline">{{ propertyNames }}</code>.
+    </p>
+
+    <code id="template" class="html" contenteditable="true"></code>
+  </div>
+</body>
+</html>

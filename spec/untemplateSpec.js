@@ -400,5 +400,63 @@ describe ('untemplate',  () => {
 
       expect(structuredData.length).toEqual(0);
     });
+
+    it ('should match large templates with many optionals',  () => {
+      let page = getDomFromHtml(`
+        <div>
+          <div>
+            <div> a </div>
+            <div> b </div>
+            <div> c </div>
+          </div>
+          <div>
+            <div> d </div>
+            <div> e </div>
+            <div> f </div>
+          </div>
+          <div>
+            <div> g </div>
+            <div> h </div>
+            <div> i </div>
+          </div>
+        </div>
+      `);
+      let template = `
+        <div>
+          <div>
+            <div> {{ letter1 }} </div>
+            <div> {{ letter2 }} </div>
+            <div?> {{ letter3 }} </div>
+            <div?> {{ letter4 }} </div>
+          </div>
+          <div?>
+            <div> {{ letter5 }} </div>
+            <div> {{ letter6 }} </div>
+            <div?> {{ letter7 }} </div>
+            <div?> {{ letter8 }} </div>
+          </div>
+          <div?>
+            <div> {{ letter9 }} </div>
+            <div> {{ letter10 }} </div>
+            <div?> {{ letter11 }} </div>
+            <div?> {{ letter12 }} </div>
+          </div>
+          <div?>
+            <div> {{ letter13 }} </div>
+            <div> {{ letter14 }} </div>
+            <div?> {{ letter15 }} </div>
+            <div?> {{ letter16 }} </div>
+          </div>
+        </div>
+      `;
+      let structuredData = untemplate(template, page);
+
+      expect(structuredData.length).toEqual(1);
+      expect(structuredData[0]).toEqual({
+        letter1: 'a', letter2: 'b', letter3: 'c',
+        letter5: 'd', letter6: 'e', letter7: 'f',
+        letter9: 'g', letter10: 'h', letter11: 'i'
+      });
+    });
   });
 });
