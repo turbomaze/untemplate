@@ -78,6 +78,17 @@ Refer to the specs file at `spec/untemplateSpec.js` for examples of each of thes
 * throws 
   * `UnresolveableExamplesError`: thrown if the input examples cannot be reconciled for any reason (usually just because they do not share a common outermost tag)
 
+## Running locally
+
+This project uses Webpack to generate a bundle file and Flow to check types. The following commands will use `yarn`, but you can use `npm` or `npm run` interchangeably.
+
+1. `yarn install` to grab the dependencies.
+2. `yarn flow` to check the types
+3. `yarn test` to run tests (this project uses jasmine)
+4. `yarn build` to create a bundle file in `lib/`
+
+For a front-end interface to the `#deduceTemplate` function, open the `index.html` file in a browser. This will allow you to paste in HTML and deduce the template the minimally matches those html examples.
+
 ## License
 
 MIT &copy; fin ventures
