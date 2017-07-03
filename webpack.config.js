@@ -6,7 +6,7 @@ var env = process.env.WEBPACK_ENV;
 var libraryName = 'untemplate';
 var plugins = [];
 
-plugins.push(new UglifyJsPlugin({ minimize: true }));
+plugins.push(new UglifyJsPlugin({ minimize: true, sourceMap: true }));
 
 var config = {
   entry: {

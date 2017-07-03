@@ -1,6 +1,5 @@
 // @flow
 
-import { XMLSerializer } from 'xmldom';
 import _ from 'lodash';
 import {
   getNonEmptyChildren, number,
@@ -10,7 +9,6 @@ import type { DomNode, ElementDomNode } from './utils';
 import { untemplate } from './untemplate';
 
 // constants
-const SERIALIZER = new XMLSerializer();
 const TIE_BREAKER = 1.000001; // biases the optimization to more intuitive templates
 
 // types

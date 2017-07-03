@@ -1,6 +1,5 @@
 // @flow
 
-import { DOMParser } from 'xmldom';
 import sha1 from 'object-hash';
 import {
   parseTemplate, getNonEmptyChildren, number,
