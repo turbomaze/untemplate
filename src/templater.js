@@ -256,7 +256,11 @@ function applyScriptToTrees(treeA, treeB, script: Script) {
   const A = _.cloneDeep(treeA);
   const B = _.cloneDeep(treeB);
   const children = [];
-  const reconciliation = {type: A.type, children: []};
+  const reconciliation = {
+    type: A.type,
+    children: [],
+    optional: A.optional || B.optional
+  };
   for (let i = 0; i < script.length; i++) {
     _applyScriptInstruction(reconciliation, A, B, script[i]);
   }

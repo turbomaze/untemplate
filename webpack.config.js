@@ -30,7 +30,7 @@ var config = {
       }
     ]
   },
-	plugins: plugins,
+  plugins: plugins,
 };
 
 module.exports = config;

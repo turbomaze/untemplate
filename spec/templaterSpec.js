@@ -382,5 +382,38 @@ describe ('untemplate',  () => {
       `);
       expect(templatesMatch(expectedTemplate, template)).toEqual(true);
     });
+
+    it ('should be able to deduce nested optionals',  () => {
+      const examples = [`
+        <div>
+          example 1
+        </div>
+      `, `
+        <div>
+          example 2
+          <div> example 3 </div>
+        </div>
+      `, `
+        <div>
+          example 4
+          <div>
+            example 5
+            <span> example 6 </span>
+          </div>
+        </div>
+      `];
+      const templateString = deduceTemplate(examples);
+      const template = parseTemplate(templateString);
+      const expectedTemplate = parseTemplate(`
+        <div>
+          example 1,example 2,example 4
+          <div?>
+            example 3,example 5
+            <span?> example 6 </span>
+          </div>
+        </div>
+      `);
+      expect(templatesMatch(expectedTemplate, template)).toEqual(true);
+    });
   });
 });
