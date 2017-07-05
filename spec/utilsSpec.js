@@ -153,6 +153,16 @@ describe ('untemplate',  () => {
       expect(nonEmptyChildren[0].nodeValue).toEqual('nonempty');
       expect(nonEmptyChildren[1].tagName.toLowerCase()).toEqual('div');
     });
+
+    it ('should always skip over comments',  () => {
+      const html = '<header><!-- comment 1 -->nonempty<div></div></header>';
+      const dom = parseHtml(html);
+      const nonEmptyChildren = getNonEmptyChildren(dom);
+      expect(nonEmptyChildren.length).toEqual(2);
+      expect(isTextNode(nonEmptyChildren[0])).toEqual(true);
+      expect(nonEmptyChildren[0].nodeValue).toEqual('nonempty');
+      expect(nonEmptyChildren[1].tagName.toLowerCase()).toEqual('div');
+    });
   });
 
   describe ('#number',  () => {

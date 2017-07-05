@@ -458,5 +458,40 @@ describe ('untemplate',  () => {
         letter9: 'g', letter10: 'h', letter11: 'i'
       });
     });
+
+    it ('should ignore html comments',  () => {
+      let page = getDomFromHtml(`
+        <body>
+          <div>
+            <!-- comment 1 -->
+            <span> example 1 </span>
+            <!-- comment 2 -->
+            <!-- comment 3 -->
+            <span> example 2 </span>
+          </div>
+          <div>
+            <span> example 3 </span>
+            <span> example 4 </span>
+          </div>
+        </body>
+      `);
+      let template = `
+        <div>
+          <span> {{ prop1 }} </span>
+          <span> {{ prop2 }} </span>
+        </div>
+      `;
+      let structuredData = untemplate(template, page);
+
+      expect(structuredData.length).toEqual(2);
+      expect(structuredData[0]).toEqual({
+        prop1: 'example 1',
+        prop2: 'example 2'
+      });
+      expect(structuredData[1]).toEqual({
+        prop1: 'example 3',
+        prop2: 'example 4'
+      });
+    });
   });
 });

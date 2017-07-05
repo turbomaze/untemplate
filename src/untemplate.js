@@ -184,7 +184,8 @@ function _applyTemplate (template, element, state): void {
     } else if (!templateIsText && !elementIsText) { // both nodes
       _applyTemplate(templateKid, elementKid, state);
       tempPtr++, elementPtr++;
-    } else if (!templateIsText && elementIsText) { // element has excess text
+    } else if (!templateIsText && elementIsText) {
+      // element has excess text
       elementPtr++;
     } else { // template has excess text
       tempPtr++;

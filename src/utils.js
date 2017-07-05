@@ -70,8 +70,10 @@ export function getNonEmptyChildren(element: DomNode): DomNode[] {
     if (isTextNode(child)) {
       const child_: TextDomNode = (child: any);
       return child_ && child_.nodeValue.trim() !== '';
-    } else {
+    } else if (isElement(child)) {
       return true;
+    } else { // html comment nodes, etc
+      return false;
     }
   });
 }
