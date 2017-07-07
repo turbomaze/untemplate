@@ -493,5 +493,34 @@ describe ('untemplate',  () => {
         prop2: 'example 4'
       });
     });
+
+    fit ('should extract info from attributes',  () => {
+      let page = getDomFromHtml(`
+        <body>
+          <div>
+            <span title="attribute 1"> example 1 </span>
+          </div>
+          <div>
+            <span title="attribute 2"> example 2 </span>
+          </div>
+        </body>
+      `);
+      let template = `
+        <div>
+          <span title="{{ attribute }}"> {{ prop }} </span>
+        </div>
+      `;
+      let structuredData = untemplate(template, page);
+
+      expect(structuredData.length).toEqual(2);
+      expect(structuredData[0]).toEqual({
+        prop: 'example 1',
+        attribute: 'attribute 1'
+      });
+      expect(structuredData[1]).toEqual({
+        prop: 'example 2',
+        attribute: 'attribute 2'
+      });
+    });
   });
 });

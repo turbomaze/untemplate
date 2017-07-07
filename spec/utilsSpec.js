@@ -47,6 +47,27 @@ describe ('untemplate',  () => {
       const matches = templatesMatch(template1, template2);
       expect(matches).toEqual(false);
     });
+
+    fit ('should match templates with the same attributes',  () => { 
+      const template1 = parseTemplate('<div><a href="1" class="2"></a></div>');
+      const template2 = parseTemplate('<div><a href="1" class="2"></a></div>');
+      const matches = templatesMatch(template1, template2);
+      expect(matches).toEqual(false);
+    });
+
+    fit ('should reject templates with different attributes',  () => { 
+      const template1 = parseTemplate('<div><a href="1"></a></div>');
+      const template2 = parseTemplate('<div><a href="2"></a></div>');
+      const matches = templatesMatch(template1, template2);
+      expect(matches).toEqual(false);
+    });
+
+    fit ('should reject templates with inconsistent attributes',  () => { 
+      const template1 = parseTemplate('<div><a></a></div>');
+      const template2 = parseTemplate('<div><a href="2"></a></div>');
+      const matches = templatesMatch(template1, template2);
+      expect(matches).toEqual(false);
+    });
   });
 
   // NOTE: *white-box testing for #parseTemplate*
@@ -107,6 +128,18 @@ describe ('untemplate',  () => {
       expect(isOptional(template)).not.toEqual(true);
       expect(template.childNodes.length).toEqual(1);
       expect(template.childNodes[0].tagName).toEqual('img');
+      expect(isOptional(template.childNodes[0])).toEqual(true);
+    });
+
+    fit ('should parse template attributes', () => {
+      const dsl = '<div class="1"><a href="2"></a></div>';
+      const template = parseTemplate(dsl);
+      expect(template.tagName).toEqual('div');
+      expect(template.attributes).toEqual({ 'class': '1' });
+      expect(isOptional(template)).not.toEqual(true);
+      expect(template.childNodes.length).toEqual(1);
+      expect(template.childNodes[0].tagName).toEqual('img');
+      expect(template.childNodes[0].attributes).toEqual({ 'href': '2' });
       expect(isOptional(template.childNodes[0])).toEqual(true);
     });
   });
