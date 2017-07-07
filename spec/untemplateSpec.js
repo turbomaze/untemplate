@@ -494,7 +494,7 @@ describe ('untemplate',  () => {
       });
     });
 
-    fit ('should extract info from attributes',  () => {
+    it ('should extract info from attributes',  () => {
       let page = getDomFromHtml(`
         <body>
           <div>
@@ -520,6 +520,65 @@ describe ('untemplate',  () => {
       expect(structuredData[1]).toEqual({
         prop: 'example 2',
         attribute: 'attribute 2'
+      });
+    });
+
+    it ('should extract info from more complex attributes',  () => {
+      let page = getDomFromHtml(`
+        <body>
+          <div class="unused 1">
+            <span title="i am a title"> example 1 </span>
+          </div>
+          <div href="i am an href">
+            <span> example 2 </span>
+          </div>
+        </body>
+      `);
+      let template = `
+        <div href="{{ hrefAttribute }}">
+          <span title="{{ titleAttribute }}"> {{ prop }} </span>
+        </div>
+      `;
+      let structuredData = untemplate(template, page);
+
+      expect(structuredData.length).toEqual(2);
+      expect(structuredData[0]).toEqual({
+        prop: 'example 1',
+        titleAttribute: 'i am a title'
+      });
+      expect(structuredData[1]).toEqual({
+        prop: 'example 2',
+        hrefAttribute: 'i am an href'
+      });
+    });
+
+    it ('should extract attributes on optional elements',  () => {
+      let page = getDomFromHtml(`
+        <body>
+          <div>
+            <span> example 1 </span>
+            <span class="example 2"> </span>
+          </div>
+          <div>
+            <span> example 3 </span>
+          </div>
+        </body>
+      `);
+      let template = `
+        <div>
+          <span> {{ prop1 }} </span>
+          <span class="{{ prop2 }}" ?> </span>
+        </div>
+      `;
+      let structuredData = untemplate(template, page);
+
+      expect(structuredData.length).toEqual(2);
+      expect(structuredData[0]).toEqual({
+        prop1: 'example 1',
+        prop2: 'example 2'
+      });
+      expect(structuredData[1]).toEqual({
+        prop1: 'example 3'
       });
     });
   });

@@ -6,70 +6,70 @@ import {
 
 describe ('untemplate',  () => {
   describe ('#templatesMatch',  () => {
-    it ('should accept identical templates',  () => { 
+    it ('should accept identical templates',  () => {
       const template1 = parseTemplate('<div><span></span></div>');
       const template2 = parseTemplate('<div><span></span></div>');
       const matches = templatesMatch(template1, template2);
       expect(matches).toEqual(true);
     });
 
-    it ('should accept templates that differ in whitespace',  () => { 
+    it ('should accept templates that differ in whitespace',  () => {
       const template1 = parseTemplate('<div>\t\t\t<span></span>  </div>');
       const template2 = parseTemplate('<div><span>\n\n\n   </span></div>');
       const matches = templatesMatch(template1, template2);
       expect(matches).toEqual(true);
     });
 
-    it ('should reject templates that differ in text content',  () => { 
+    it ('should reject templates that differ in text content',  () => {
       const template1 = parseTemplate('<div>\t\t\t<span> hello </span>  </div>');
       const template2 = parseTemplate('<div><span>\n\n\n   </span></div>');
       const matches = templatesMatch(template1, template2);
       expect(matches).toEqual(false);
     });
 
-    it ('should accept templates that have the same trimmed text content',  () => { 
+    it ('should accept templates that have the same trimmed text content',  () => {
       const template1 = parseTemplate('<div><span></span><a>  123  </a></div>');
       const template2 = parseTemplate('<div><span></span><a>123</a></div>');
       const matches = templatesMatch(template1, template2);
       expect(matches).toEqual(true);
     });
 
-    it ('should accept templates that include the same optionals',  () => { 
+    it ('should accept templates that include the same optionals',  () => {
       const template1 = parseTemplate('<div><span></span><a?></a></div>');
       const template2 = parseTemplate('<div><span></span><a optional="true"></a></div>');
       const matches = templatesMatch(template1, template2);
       expect(matches).toEqual(true);
     });
 
-    it ('should reject templates with different optionals',  () => { 
+    it ('should reject templates with different optionals',  () => {
       const template1 = parseTemplate('<div><span?></span><a?></a></div>');
       const template2 = parseTemplate('<div><span></span><a optional="true"></a></div>');
       const matches = templatesMatch(template1, template2);
       expect(matches).toEqual(false);
     });
 
-    fit ('should match templates with the same attributes',  () => { 
+    it ('should match templates with the same attributes',  () => {
       const template1 = parseTemplate('<div><a href="1" class="2"></a></div>');
       const template2 = parseTemplate('<div><a href="1" class="2"></a></div>');
       const matches = templatesMatch(template1, template2);
       expect(matches).toEqual(true);
     });
 
-    fit ('should reject templates with different attributes',  () => { 
+    it ('should reject templates with different attributes',  () => {
       const template1 = parseTemplate('<div><a href="1"></a></div>');
       const template2 = parseTemplate('<div><a href="2"></a></div>');
       const matches = templatesMatch(template1, template2);
       expect(matches).toEqual(false);
     });
 
-    fit ('should reject templates with inconsistent attributes',  () => { 
+    it ('should reject templates with inconsistent attributes',  () => {
       const template1 = parseTemplate('<div><a></a></div>');
       const template2 = parseTemplate('<div><a href="1"></a></div>');
       const matches = templatesMatch(template1, template2);
       expect(matches).toEqual(false);
     });
 
-    fit ('should match templates with the same trimmed attributes',  () => { 
+    it ('should match templates with the same trimmed attributes',  () => {
       const template1 = parseTemplate('<div><a href=" a  "></a></div>');
       const template2 = parseTemplate('<div><a href="a\t"></a></div>');
       const matches = templatesMatch(template1, template2);
@@ -82,7 +82,7 @@ describe ('untemplate',  () => {
   // - the dsl is basically just html at this point
   // - just test for the differences
   describe ('#parseTemplate',  () => {
-    it ('should parse simple templates correctly',  () => { 
+    it ('should parse simple templates correctly',  () => {
       const dsl = '<div><span></span></div>';
       const template = parseTemplate(dsl);
       expect(template.tagName).toEqual('div');
@@ -138,7 +138,7 @@ describe ('untemplate',  () => {
       expect(isOptional(template.childNodes[0])).toEqual(true);
     });
 
-    fit ('should parse template attributes', () => {
+    it ('should parse template attributes', () => {
       const dsl = '<div class="1"><a href="2"></a></div>';
       const template = parseTemplate(dsl);
       expect(template.tagName).toEqual('div');

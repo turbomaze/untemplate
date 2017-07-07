@@ -75,7 +75,7 @@ Refer to the specs file at `spec/untemplateSpec.js` for examples of each of thes
   * a string representing the minimum template that matches all of the provided examples
     * minimum means: fewest number of optional nodes in the template (this count includes the descendants of optional nodes)
   * this string all of the text in the provided examples in an aggregated form to communicate which portions of the template correspond to what
-* throws 
+* throws
   * `UnresolveableExamplesError`: thrown if the input examples cannot be reconciled for any reason (usually just because they do not share a common outermost tag)
 
 ## Running locally

@@ -9,7 +9,7 @@ const TemplaterDemo = (function() {
 
   // state
   const examples = [];
-    
+
   function initTemplaterDemo(): void {
     const exampleInput: HTMLInputElement = ($('example-html'): any);
     exampleInput.addEventListener('keydown', function(e: KeyboardEvent) {
@@ -50,7 +50,7 @@ const TemplaterDemo = (function() {
     const examplesList: HTMLElement = ($('examples'): any);
     examplesList.innerHTML = '';
     examples.forEach(function(example) {
-      const li = document.createElement('li'); 
+      const li = document.createElement('li');
       li.className = 'example';
       li.title = example;
       li.innerHTML = escapeHtml(example.substring(0, PREVIEW_LENGTH));
