@@ -302,7 +302,7 @@ function treesAreSame(a, b): boolean {
   for (let i = 0; i < a.children.length; i++) {
     if (!treesAreSame(a.children[i], b.children[i])) return false;
   }
-  
+
   return true;
 }
 

@@ -153,7 +153,7 @@ function treesMatch (a, b): boolean {
   for (let i = 0; i < a.children.length; i++) {
     if (!treesMatch(a.children[i], b.children[i])) return false;
   }
-  
+
   return true;
 }
 
@@ -164,7 +164,12 @@ function applyTemplate (template, element): {} {
 }
 
 // precondition: the template subtree matches the element subtree
-function _applyTemplate (template, element, state): void {
+function _applyTemplate (
+  template: ElementDomNode, element: ElementDomNode, state
+): void {
+  // match the attributes of this node
+  _applyTemplateToAttributes(template, element, state);
+
   let tempPtr = 0, elementPtr = 0;
   const templateKids = getNonEmptyChildren(template)
     .filter((child) => { return isTextNode(child) || !isHidden(child); });
@@ -177,12 +182,13 @@ function _applyTemplate (template, element, state): void {
     if (templateIsText && elementIsText) { // both text
       const templateKid_: TextDomNode = (templateKid: any);
       const elementKid_: TextDomNode = (elementKid: any);
-      const keyMatch = templateKid_.nodeValue.match(/{{(.+)}}/);
-      const keyName = !!keyMatch ? keyMatch[1].trim() : false;
+      const keyName = getKeyName(templateKid_.nodeValue);
       if (keyName) addProperty(state, keyName, elementKid_.nodeValue.trim());
       tempPtr++, elementPtr++;
     } else if (!templateIsText && !elementIsText) { // both nodes
-      _applyTemplate(templateKid, elementKid, state);
+      const templateKid_: ElementDomNode = (templateKid: any);
+      const elementKid_: ElementDomNode = (elementKid: any);
+      _applyTemplate(templateKid_, elementKid_, state);
       tempPtr++, elementPtr++;
     } else if (!templateIsText && elementIsText) {
       // element has excess text
@@ -193,7 +199,23 @@ function _applyTemplate (template, element, state): void {
   }
 }
 
-function hideOptionals(template: ElementDomNode, pattern): ElementDomNode {
+function _applyTemplateToAttributes(
+  template: ElementDomNode, element: ElementDomNode, state
+): void {
+  Array.from(template.attributes).forEach((templateAttribute) => {
+    const elementAttribute = element.attributes.getNamedItem(
+      templateAttribute.name
+    );
+    if (elementAttribute && elementAttribute.value.trim() !== '') {
+      const keyName = getKeyName(templateAttribute.value);
+      if (keyName) {
+        addProperty(state, keyName, elementAttribute.value.trim());
+      }
+    }
+  });
+}
+
+function hideOptionals (template: ElementDomNode, pattern): ElementDomNode {
   const hiddenTemplate_: ElementDomNode = (template.cloneNode(true): any);
   let stack = [hiddenTemplate_];
   while (stack.length > 0) {
@@ -209,7 +231,7 @@ function hideOptionals(template: ElementDomNode, pattern): ElementDomNode {
   return hiddenTemplate_;
 }
 
-function addProperty(state: {}, key: string, value: any): void {
+function addProperty (state: {}, key: string, value: any): void {
   if (state.hasOwnProperty(key)) {
     if (!Array.isArray(state[key])) state[key] = [state[key]];
     state[key].push(value);
@@ -218,7 +240,12 @@ function addProperty(state: {}, key: string, value: any): void {
   }
 }
 
-function isHidden(element): boolean {
+function getKeyName (str) {
+  const keyMatch = str.match(/{{(.+)}}/);
+  return !!keyMatch ? keyMatch[1].trim() : false;
+}
+
+function isHidden (element): boolean {
   const isElementNode = isElement(element);
   return isElementNode && element.getAttribute('optionalHidden') === 'true';
 }

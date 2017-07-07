@@ -22,7 +22,8 @@ export type TextDomNode = BasicDomNode & {
 };
 export type ElementDomNode = BasicDomNode & {
   nodeType: ELEMENT_NODE,
-  tagName: string
+  tagName: string,
+  attributes: NamedNodeMap
 };
 export type DomNode = TextDomNode | ElementDomNode;
 export type AnnotatedTree = {
@@ -35,10 +36,11 @@ export function templatesMatch(a: DomNode, b: DomNode): boolean {
     const a_: ElementDomNode = (a: any);
     const b_: ElementDomNode = (b: any);
     if (a_.tagName !== b_.tagName) return false;
-    if (isOptional(a) !== isOptional(b)) return false;
+    if (isOptional(a_) !== isOptional(b_)) return false;
+    if (!attributesMatch(a_, b_)) return false;
 
-    const aChildren = getNonEmptyChildren(a);
-    const bChildren = getNonEmptyChildren(b);
+    const aChildren = getNonEmptyChildren(a_);
+    const bChildren = getNonEmptyChildren(b_);
     if (aChildren.length !== bChildren.length) return false;
 
     for (let i = 0; i < aChildren.length; i++) {
@@ -55,8 +57,22 @@ export function templatesMatch(a: DomNode, b: DomNode): boolean {
   }
 }
 
+function attributesMatch(a: ElementDomNode, b: ElementDomNode): boolean {
+  const attributesA = a.attributes;
+  const attributesB = b.attributes;
+  if (attributesA.length !== attributesB.length) return false;
+
+  for (let i = 0; i < attributesA.length; i++) {
+    const valueA = attributesA[i].value.trim();
+    const valueB = attributesB.getNamedItem(attributesA[i].name).value.trim();
+    if (valueA !== valueB) return false;
+  }
+
+  return true;
+}
+
 export function parseTemplate(dsl: string): DomNode {
-  return parseHtml(desugar(dsl));  
+  return parseHtml(desugar(dsl));
 }
 
 function desugar(dsl: string): string {
