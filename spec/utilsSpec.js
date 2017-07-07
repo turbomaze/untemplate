@@ -52,7 +52,7 @@ describe ('untemplate',  () => {
       const template1 = parseTemplate('<div><a href="1" class="2"></a></div>');
       const template2 = parseTemplate('<div><a href="1" class="2"></a></div>');
       const matches = templatesMatch(template1, template2);
-      expect(matches).toEqual(false);
+      expect(matches).toEqual(true);
     });
 
     fit ('should reject templates with different attributes',  () => { 
@@ -64,9 +64,16 @@ describe ('untemplate',  () => {
 
     fit ('should reject templates with inconsistent attributes',  () => { 
       const template1 = parseTemplate('<div><a></a></div>');
-      const template2 = parseTemplate('<div><a href="2"></a></div>');
+      const template2 = parseTemplate('<div><a href="1"></a></div>');
       const matches = templatesMatch(template1, template2);
       expect(matches).toEqual(false);
+    });
+
+    fit ('should match templates with the same trimmed attributes',  () => { 
+      const template1 = parseTemplate('<div><a href=" a  "></a></div>');
+      const template2 = parseTemplate('<div><a href="a\t"></a></div>');
+      const matches = templatesMatch(template1, template2);
+      expect(matches).toEqual(true);
     });
   });
 
@@ -135,12 +142,16 @@ describe ('untemplate',  () => {
       const dsl = '<div class="1"><a href="2"></a></div>';
       const template = parseTemplate(dsl);
       expect(template.tagName).toEqual('div');
-      expect(template.attributes).toEqual({ 'class': '1' });
+      expect(template.attributes.length).toEqual(1);
+      expect(template.attributes[0].name).toEqual('class');
+      expect(template.attributes[0].value).toEqual('1');
       expect(isOptional(template)).not.toEqual(true);
       expect(template.childNodes.length).toEqual(1);
-      expect(template.childNodes[0].tagName).toEqual('img');
-      expect(template.childNodes[0].attributes).toEqual({ 'href': '2' });
-      expect(isOptional(template.childNodes[0])).toEqual(true);
+      expect(template.childNodes[0].tagName).toEqual('a');
+      expect(template.childNodes[0].attributes.length).toEqual(1);
+      expect(template.childNodes[0].attributes[0].name).toEqual('href');
+      expect(template.childNodes[0].attributes[0].value).toEqual('2');
+      expect(isOptional(template.childNodes[0])).not.toEqual(true);
     });
   });
 
