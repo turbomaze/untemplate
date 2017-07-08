@@ -21,6 +21,7 @@ type AnnotatedTemplate = {
   children: AnnotatedTemplate[],
   optionalNumber: number
 };
+type hashNeedles = { [string]: { [number]: boolean } };
 
 // preconditions:
 // - dsl is a well-formatted template string
@@ -28,14 +29,37 @@ type AnnotatedTemplate = {
 // - return list of objects from template properties to values
 export function untemplate (dsl: string, element: ElementDomNode): {}[] {
   const template = parseTemplate(dsl);
-  return find(template, element);
+  const needles = precomputeNeedles(template);
+  return findWithNeedles(template, needles, element);
 }
 
-function find (template: DomNode, element: ElementDomNode): {}[] {
+export function untemplateWithNeedles (
+  dsl: string,
+  needles: hashNeedles,
+  element: ElementDomNode
+): {}[] {
+  const template = parseTemplate(dsl);
+  return findWithNeedles(template, needles, element);
+}
+
+function findWithNeedles (
+  template: DomNode,
+  needles: hashNeedles,
+  element: ElementDomNode
+) {
+  // search the tree in O(n) where n is number of nodes
+  const labeledTemplate = labelOptionals(template);
+  const annotatedElement: AnnotatedTree = (annotateDom(element): any);
+  const haystack = number(annotatedElement);
+  return findWithHashes(labeledTemplate, needles, haystack);
+
+}
+
+export function precomputeNeedles (template): hashNeedles {
   // iterate all possible combinations of optionals in O(n * 2^numOptionals)
   // NOTE: it's possible to get rid of the factor of n if necessary
-  const numOptionals = countOptionals(template);
   const labeledTemplate = labelOptionals(template);
+  const numOptionals = countOptionals(labeledTemplate);
   const annotatedTemplate_: AnnotatedTemplate = (
     annotateTemplate(labeledTemplate): any
   );
@@ -48,11 +72,7 @@ function find (template: DomNode, element: ElementDomNode): {}[] {
     );
     needles[hiddenTemplateHash] = hidden;
   }
-
-  // search the tree in O(n) where n is number of nodes
-  const annotatedElement: AnnotatedTree = (annotateDom(element): any);
-  const haystack = number(annotatedElement);
-  return findWithHashes(labeledTemplate, needles, haystack);
+  return needles;
 }
 
 function countOptionals (template): number {

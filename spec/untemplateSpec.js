@@ -1,5 +1,5 @@
 import { DOMParser } from 'xmldom';
-import { untemplate } from '../src/index.js';
+import { untemplate, untemplateWithNeedles } from '../src/index.js';
 
 function getDomFromHtml(html) {
   return (new DOMParser()).parseFromString(html.trim(), 'text/xml').firstChild;
@@ -579,6 +579,141 @@ describe ('untemplate',  () => {
       });
       expect(structuredData[1]).toEqual({
         prop1: 'example 3'
+      });
+    });
+  });
+
+  describe ('#precomputeNeedles',  () => {
+    it ('should compute the correct hashes for simple templates',  () => {
+    });
+
+    it ('should compute the correct hashes for more complex templates',  () => {
+    });
+
+    it ('should only base hashes on the DOM structure, not contents',  () => {
+    });
+  });
+
+  // whitebox testing: only test the differences b/w #untemplate
+  describe ('#untemplateWithNeedles',  () => {
+    it ('should match simple exact templates',  () => {
+      let page = getDomFromHtml('<div> hello </div>');
+      let needles = { 'f66b8069cbb849233816cec5a787b0fd1ca88c8d': {} };
+      let template = '<div> {{ greeting }} </div>';
+      let structuredData = untemplateWithNeedles(
+        template, needles, page
+      );
+
+      expect(structuredData.length).toEqual(1);
+      expect(structuredData[0]).toEqual({greeting: 'hello'});
+    });
+
+    it ('should match templates with one optional component',  () => {
+      let page = getDomFromHtml(`
+        <ul>
+          <li>
+            <div> Massachusetts Institute of Technology </div>
+            <div> 2014 </div>
+            <div> Bachelors in Computer Science </div>
+          </li>
+          <li>
+            <div> Harvard University </div>
+            <div> 2019 </div>
+          </li>
+        </ul>
+      `);
+      let needles = {
+        '7a4e9ca7c88bf21052c02343cc9268847b15e9ef': { '0': false },
+        '3d17cb2d59e752e8cbb04e3a78a2bb614b247d32': { '0': true }
+      };
+      let template = `
+        <li>
+          <div> {{ school }}</div>
+          <div> {{ year }}</div>
+          <div optional="true"> {{ degree }}</div>
+        </li>
+      `;
+      let structuredData = untemplateWithNeedles(template, needles, page);
+
+      expect(structuredData.length).toEqual(2);
+      expect(structuredData[0]).toEqual({
+        school: 'Massachusetts Institute of Technology',
+        year: '2014',
+        degree: 'Bachelors in Computer Science'
+      });
+      expect(structuredData[1]).toEqual({
+        school: 'Harvard University',
+        year: '2019'
+      });
+    });
+
+    it ('should not match complex templates with more/fewer children',  () => {
+      let page = getDomFromHtml(`
+        <body>
+          <ul>
+            <li> kingdom </li>
+            <li> phylum </li>
+            <li> genus </li>
+            <li> species </li>
+          </ul>
+          <ul>
+            <li> family </li>
+            <li> order </li>
+          </ul>
+        </body>
+      `);
+      let needles = {
+        '7c8a9440016b5dce45c0f7dc926d85a8a1f468be': {}
+      };
+      let template = `
+        <ul>
+          <li> {{ bio }} </li>
+          <li> {{ bio }} </li>
+          <li> {{ bio }} </li>
+        </ul>
+      `;
+      let structuredData = untemplateWithNeedles(template, needles, page);
+
+      expect(structuredData.length).toEqual(0);
+    });
+
+    it ('should match templates using the shorthand optional syntax',  () => {
+      let page = getDomFromHtml(`
+        <body>
+          <header> my cool homepage </header>
+          <div>
+            <span> i make shortfilms </span>
+            <a> most recent film </a>
+            <button> donate  </button>
+          </div>
+          <div>
+            <span> filler </span>
+          </div>
+        </body>
+      `);
+      let needles = {
+        '76d087f9f3cd2ce6d424d7ac812dc42502339769': { '0': false, '1': false },
+        '9b1eef05cfb98c44abddc27b1c07a74fe9f93b3e': { '0': true, '1': false },
+        '93e5663349ed25455036a070ca126a7c6ffa6a62': { '0': false, '1': true },
+        'e15e877e9cd4f08ca9f974145dba2cce17b52351': { '0': true, '1': true }
+      };
+      let template = `
+        <div>
+          <span> {{ sectionTitle }} </span>
+          <a?> {{ linkName }} </a>
+          <button?> {{ buttonValue }} </button>
+        </div>
+      `;
+      let structuredData = untemplateWithNeedles(template, needles, page);
+
+      expect(structuredData.length).toEqual(2);
+      expect(structuredData[0]).toEqual({
+        sectionTitle: 'i make shortfilms',
+        linkName: 'most recent film',
+        buttonValue: 'donate'
+      });
+      expect(structuredData[1]).toEqual({
+        sectionTitle: 'filler',
       });
     });
   });
