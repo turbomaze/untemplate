@@ -1,31 +1,31 @@
 import { DOMParser } from 'xmldom';
-import { untemplate, untemplateWithNeedles } from '../src/index.js';
+import { untemplate, untemplateWithNeedles, precomputeNeedles } from '../src/index.js';
 
 function getDomFromHtml(html) {
-  return (new DOMParser()).parseFromString(html.trim(), 'text/xml').firstChild;
+  return new DOMParser().parseFromString(html.trim(), 'text/xml').firstChild;
 }
 
-describe ('untemplate',  () => {
-  describe ('#untemplate',  () => {
-    it ('should match simple exact templates',  () => {
+describe('untemplate', () => {
+  describe('#untemplate', () => {
+    it('should match simple exact templates', () => {
       let page = getDomFromHtml('<div> hello </div>');
       let template = '<div> {{ greeting }} </div>';
       let structuredData = untemplate(template, page);
 
       expect(structuredData.length).toEqual(1);
-      expect(structuredData[0]).toEqual({greeting: 'hello'});
+      expect(structuredData[0]).toEqual({ greeting: 'hello' });
     });
 
-    it ('should match single element templates with some depth',  () => {
+    it('should match single element templates with some depth', () => {
       let page = getDomFromHtml('<div><span> goodbye </span></div>');
       let template = '<span> {{ farewell }} </span>';
       let structuredData = untemplate(template, page);
 
       expect(structuredData.length).toEqual(1);
-      expect(structuredData[0]).toEqual({farewell: 'goodbye'});
+      expect(structuredData[0]).toEqual({ farewell: 'goodbye' });
     });
 
-    it ('should match single element templates multiple times',  () => {
+    it('should match single element templates multiple times', () => {
       let page = getDomFromHtml(`
         <ul>
           <li> lasagna </li>
@@ -36,11 +36,11 @@ describe ('untemplate',  () => {
       let structuredData = untemplate(template, page);
 
       expect(structuredData.length).toEqual(2);
-      expect(structuredData[0]).toEqual({food: 'lasagna'});
-      expect(structuredData[1]).toEqual({food: 'mofongo'});
+      expect(structuredData[0]).toEqual({ food: 'lasagna' });
+      expect(structuredData[1]).toEqual({ food: 'mofongo' });
     });
 
-    it ('should match single element templates at different tree depths',  () => {
+    it('should match single element templates at different tree depths', () => {
       let page = getDomFromHtml(`
         <div>
           <a href="http://google.com"> google </a>
@@ -58,12 +58,12 @@ describe ('untemplate',  () => {
       let structuredData = untemplate(template, page);
 
       expect(structuredData.length).toEqual(3);
-      expect(structuredData[0]).toEqual({linkName: 'google'});
-      expect(structuredData[1]).toEqual({linkName: 'twitter'});
-      expect(structuredData[2]).toEqual({linkName: 'foodler'});
+      expect(structuredData[0]).toEqual({ linkName: 'google' });
+      expect(structuredData[1]).toEqual({ linkName: 'twitter' });
+      expect(structuredData[2]).toEqual({ linkName: 'foodler' });
     });
 
-    it ('should match complex exact templates',  () => {
+    it('should match complex exact templates', () => {
       let page = getDomFromHtml(`
         <header>
           <h1> welcome </h1>
@@ -88,11 +88,11 @@ describe ('untemplate',  () => {
       expect(structuredData[0]).toEqual({
         welcomeMessage: 'welcome',
         linkName: 'login',
-        value: 'content'
+        value: 'content',
       });
     });
 
-    it ('should match complex templates with textnodes',  () => {
+    it('should match complex templates with textnodes', () => {
       let page = getDomFromHtml(`
         <div>
           login
@@ -113,11 +113,11 @@ describe ('untemplate',  () => {
       expect(structuredData[0]).toEqual({
         message: 'login',
         title: 'homepage',
-        content: 'this is my cool site'
+        content: 'this is my cool site',
       });
     });
 
-    it ('should match complex templates ignoring textnodes',  () => {
+    it('should match complex templates ignoring textnodes', () => {
       let page = getDomFromHtml(`
         <div>
           login
@@ -138,7 +138,7 @@ describe ('untemplate',  () => {
       });
     });
 
-    it ('should match complex templates at different depths',  () => {
+    it('should match complex templates at different depths', () => {
       let page = getDomFromHtml(`
         <section>
           <div>
@@ -169,7 +169,7 @@ describe ('untemplate',  () => {
       expect(structuredData[1]).toEqual({ first: 'gamma', second: 'delta' });
     });
 
-    it ('should accumulate repeated properties in complex templates',  () => {
+    it('should accumulate repeated properties in complex templates', () => {
       let page = getDomFromHtml(`
         <ul>
           <li> apples </li>
@@ -190,11 +190,11 @@ describe ('untemplate',  () => {
 
       expect(structuredData.length).toEqual(1);
       expect(structuredData[0]).toEqual({
-        fruits: ['apples', 'bananas', 'cantaloupe', 'dates']
+        fruits: ['apples', 'bananas', 'cantaloupe', 'dates'],
       });
     });
 
-    it ('should match templates with one optional component',  () => {
+    it('should match templates with one optional component', () => {
       let page = getDomFromHtml(`
         <ul>
           <li>
@@ -221,15 +221,15 @@ describe ('untemplate',  () => {
       expect(structuredData[0]).toEqual({
         school: 'Massachusetts Institute of Technology',
         year: '2014',
-        degree: 'Bachelors in Computer Science'
+        degree: 'Bachelors in Computer Science',
       });
       expect(structuredData[1]).toEqual({
         school: 'Harvard University',
-        year: '2019'
+        year: '2019',
       });
     });
 
-    it ('should match templates with many optional components',  () => {
+    it('should match templates with many optional components', () => {
       let page = getDomFromHtml(`
         <div>
           <div>
@@ -256,16 +256,14 @@ describe ('untemplate',  () => {
 
       expect(structuredData.length).toEqual(2);
       expect(structuredData[0]).toEqual({
-        features: 'Wi-Fi connectivity'
+        features: 'Wi-Fi connectivity',
       });
       expect(structuredData[1]).toEqual({
-        features: [
-          'Wi-Fi connectivity', 'Spam-bot filtering', 'Redundant storage'
-        ]
+        features: ['Wi-Fi connectivity', 'Spam-bot filtering', 'Redundant storage'],
       });
     });
 
-    it ('should match templates with doubly-optional components',  () => {
+    it('should match templates with doubly-optional components', () => {
       let page = getDomFromHtml(`
         <section>
           <div>
@@ -293,14 +291,14 @@ describe ('untemplate',  () => {
       expect(structuredData.length).toEqual(2);
       expect(structuredData[0]).toEqual({
         title: 'Administrator',
-        name: 'Morty'
+        name: 'Morty',
       });
       expect(structuredData[1]).toEqual({
-        title: 'Superintendent'
+        title: 'Superintendent',
       });
     });
 
-    it ('should match templates using the shorthand optional syntax',  () => {
+    it('should match templates using the shorthand optional syntax', () => {
       let page = getDomFromHtml(`
         <body>
           <header> my cool homepage </header>
@@ -327,14 +325,14 @@ describe ('untemplate',  () => {
       expect(structuredData[0]).toEqual({
         sectionTitle: 'i make shortfilms',
         linkName: 'most recent film',
-        buttonValue: 'donate'
+        buttonValue: 'donate',
       });
       expect(structuredData[1]).toEqual({
         sectionTitle: 'filler',
       });
     });
 
-    it ('should not match elements of a different tag type',  () => {
+    it('should not match elements of a different tag type', () => {
       let page = getDomFromHtml(`
         <body>
           <div>
@@ -352,11 +350,11 @@ describe ('untemplate',  () => {
 
       expect(structuredData.length).toEqual(1);
       expect(structuredData[0]).toEqual({
-        content: 'wingspan'
+        content: 'wingspan',
       });
     });
 
-    it ('should not match complex templates with more/fewer children',  () => {
+    it('should not match complex templates with more/fewer children', () => {
       let page = getDomFromHtml(`
         <body>
           <ul>
@@ -383,7 +381,7 @@ describe ('untemplate',  () => {
       expect(structuredData.length).toEqual(0);
     });
 
-    it ('should not match templates with additional non-text children',  () => {
+    it('should not match templates with additional non-text children', () => {
       let page = getDomFromHtml(`
         <div>
           <div>
@@ -401,7 +399,7 @@ describe ('untemplate',  () => {
       expect(structuredData.length).toEqual(0);
     });
 
-    it ('should match large templates with many optionals',  () => {
+    it('should match large templates with many optionals', () => {
       let page = getDomFromHtml(`
         <div>
           <div>
@@ -453,13 +451,19 @@ describe ('untemplate',  () => {
 
       expect(structuredData.length).toEqual(1);
       expect(structuredData[0]).toEqual({
-        letter1: 'a', letter2: 'b', letter3: 'c',
-        letter5: 'd', letter6: 'e', letter7: 'f',
-        letter9: 'g', letter10: 'h', letter11: 'i'
+        letter1: 'a',
+        letter2: 'b',
+        letter3: 'c',
+        letter5: 'd',
+        letter6: 'e',
+        letter7: 'f',
+        letter9: 'g',
+        letter10: 'h',
+        letter11: 'i',
       });
     });
 
-    it ('should ignore html comments',  () => {
+    it('should ignore html comments', () => {
       let page = getDomFromHtml(`
         <body>
           <div>
@@ -486,15 +490,15 @@ describe ('untemplate',  () => {
       expect(structuredData.length).toEqual(2);
       expect(structuredData[0]).toEqual({
         prop1: 'example 1',
-        prop2: 'example 2'
+        prop2: 'example 2',
       });
       expect(structuredData[1]).toEqual({
         prop1: 'example 3',
-        prop2: 'example 4'
+        prop2: 'example 4',
       });
     });
 
-    it ('should extract info from attributes',  () => {
+    it('should extract info from attributes', () => {
       let page = getDomFromHtml(`
         <body>
           <div>
@@ -515,15 +519,15 @@ describe ('untemplate',  () => {
       expect(structuredData.length).toEqual(2);
       expect(structuredData[0]).toEqual({
         prop: 'example 1',
-        attribute: 'attribute 1'
+        attribute: 'attribute 1',
       });
       expect(structuredData[1]).toEqual({
         prop: 'example 2',
-        attribute: 'attribute 2'
+        attribute: 'attribute 2',
       });
     });
 
-    it ('should extract info from more complex attributes',  () => {
+    it('should extract info from more complex attributes', () => {
       let page = getDomFromHtml(`
         <body>
           <div class="unused 1">
@@ -544,15 +548,15 @@ describe ('untemplate',  () => {
       expect(structuredData.length).toEqual(2);
       expect(structuredData[0]).toEqual({
         prop: 'example 1',
-        titleAttribute: 'i am a title'
+        titleAttribute: 'i am a title',
       });
       expect(structuredData[1]).toEqual({
         prop: 'example 2',
-        hrefAttribute: 'i am an href'
+        hrefAttribute: 'i am an href',
       });
     });
 
-    it ('should extract attributes on optional elements',  () => {
+    it('should extract attributes on optional elements', () => {
       let page = getDomFromHtml(`
         <body>
           <div>
@@ -575,40 +579,70 @@ describe ('untemplate',  () => {
       expect(structuredData.length).toEqual(2);
       expect(structuredData[0]).toEqual({
         prop1: 'example 1',
-        prop2: 'example 2'
+        prop2: 'example 2',
       });
       expect(structuredData[1]).toEqual({
-        prop1: 'example 3'
+        prop1: 'example 3',
       });
     });
   });
 
-  describe ('#precomputeNeedles',  () => {
-    it ('should compute the correct hashes for simple templates',  () => {
+  describe('#precomputeNeedles', () => {
+    it('should compute the correct hashes for simple templates', () => {
+      let template = '<div> {{ greeting }} </div>';
+      let needles = precomputeNeedles(template);
+      expect(needles).toEqual({
+        f66b8069cbb849233816cec5a787b0fd1ca88c8d: {},
+      });
     });
 
-    it ('should compute the correct hashes for more complex templates',  () => {
+    it('should compute the correct hashes for more complex templates', () => {
+      let template = '<div> <span> </span> <a?> <i?> </i> </a> </div>';
+      let needles = precomputeNeedles(template);
+      expect(needles).toEqual({
+        da0541aed47d67deff3f27a7b9a0426e48ca42f5: { '0': false, '1': false },
+        e15e877e9cd4f08ca9f974145dba2cce17b52351: { '0': true, '1': true },
+        '93e5663349ed25455036a070ca126a7c6ffa6a62': { '0': false, '1': true },
+      });
     });
 
-    it ('should only base hashes on the DOM structure, not contents',  () => {
+    it('should only base hashes on the DOM structure, not contents', () => {
+      let template = `<section>
+        <h1 class="heading" ?> title </h1>
+        <h2 style="font-size: 10px" ?> subtitle </h2>
+        <div>
+          <span class="name" id="user-first-name"> much </span>
+          <span class="name" id="user-last-name" ?> content </span>
+        </div>
+        many words
+      </section>`;
+      let needles = precomputeNeedles(template);
+      expect(needles).toEqual({
+        '87b776001fb9a441cb3c1d36779d44c3215d592f': { '0': false, '1': false, '2': false },
+        f7ede8333e7afdfc97988f6caa200e102eb2a189: { '0': true, '1': false, '2': false },
+        '5df89e012de7c4ae646f454a574c0cbacf0dc569': { '0': false, '1': true, '2': false },
+        '6328c4d73164208a5eb208073d7d443a4bc35784': { '0': true, '1': true, '2': false },
+        e1d539e88dd849282e4695c2839f0c83147d1c92: { '0': false, '1': false, '2': true },
+        '43d1a619425b96650dd11530bc39eb08e986cced': { '0': true, '1': false, '2': true },
+        cc1d189b6c2647ae4132d0450a91f00617d4ed97: { '0': false, '1': true, '2': true },
+        eac18323d9cfe8cb1d9df96a9eb3cf3916a92b63: { '0': true, '1': true, '2': true },
+      });
     });
   });
 
   // whitebox testing: only test the differences b/w #untemplate
-  describe ('#untemplateWithNeedles',  () => {
-    it ('should match simple exact templates',  () => {
+  describe('#untemplateWithNeedles', () => {
+    it('should match simple exact templates', () => {
       let page = getDomFromHtml('<div> hello </div>');
-      let needles = { 'f66b8069cbb849233816cec5a787b0fd1ca88c8d': {} };
+      let needles = { f66b8069cbb849233816cec5a787b0fd1ca88c8d: {} };
       let template = '<div> {{ greeting }} </div>';
-      let structuredData = untemplateWithNeedles(
-        template, needles, page
-      );
+      let structuredData = untemplateWithNeedles(template, needles, page);
 
       expect(structuredData.length).toEqual(1);
-      expect(structuredData[0]).toEqual({greeting: 'hello'});
+      expect(structuredData[0]).toEqual({ greeting: 'hello' });
     });
 
-    it ('should match templates with one optional component',  () => {
+    it('should match templates with one optional component', () => {
       let page = getDomFromHtml(`
         <ul>
           <li>
@@ -624,7 +658,7 @@ describe ('untemplate',  () => {
       `);
       let needles = {
         '7a4e9ca7c88bf21052c02343cc9268847b15e9ef': { '0': false },
-        '3d17cb2d59e752e8cbb04e3a78a2bb614b247d32': { '0': true }
+        '3d17cb2d59e752e8cbb04e3a78a2bb614b247d32': { '0': true },
       };
       let template = `
         <li>
@@ -639,15 +673,15 @@ describe ('untemplate',  () => {
       expect(structuredData[0]).toEqual({
         school: 'Massachusetts Institute of Technology',
         year: '2014',
-        degree: 'Bachelors in Computer Science'
+        degree: 'Bachelors in Computer Science',
       });
       expect(structuredData[1]).toEqual({
         school: 'Harvard University',
-        year: '2019'
+        year: '2019',
       });
     });
 
-    it ('should not match complex templates with more/fewer children',  () => {
+    it('should not match complex templates with more/fewer children', () => {
       let page = getDomFromHtml(`
         <body>
           <ul>
@@ -663,7 +697,7 @@ describe ('untemplate',  () => {
         </body>
       `);
       let needles = {
-        '7c8a9440016b5dce45c0f7dc926d85a8a1f468be': {}
+        '7c8a9440016b5dce45c0f7dc926d85a8a1f468be': {},
       };
       let template = `
         <ul>
@@ -677,7 +711,7 @@ describe ('untemplate',  () => {
       expect(structuredData.length).toEqual(0);
     });
 
-    it ('should match templates using the shorthand optional syntax',  () => {
+    it('should match templates using the shorthand optional syntax', () => {
       let page = getDomFromHtml(`
         <body>
           <header> my cool homepage </header>
@@ -695,7 +729,7 @@ describe ('untemplate',  () => {
         '76d087f9f3cd2ce6d424d7ac812dc42502339769': { '0': false, '1': false },
         '9b1eef05cfb98c44abddc27b1c07a74fe9f93b3e': { '0': true, '1': false },
         '93e5663349ed25455036a070ca126a7c6ffa6a62': { '0': false, '1': true },
-        'e15e877e9cd4f08ca9f974145dba2cce17b52351': { '0': true, '1': true }
+        e15e877e9cd4f08ca9f974145dba2cce17b52351: { '0': true, '1': true },
       };
       let template = `
         <div>
@@ -710,7 +744,7 @@ describe ('untemplate',  () => {
       expect(structuredData[0]).toEqual({
         sectionTitle: 'i make shortfilms',
         linkName: 'most recent film',
-        buttonValue: 'donate'
+        buttonValue: 'donate',
       });
       expect(structuredData[1]).toEqual({
         sectionTitle: 'filler',
