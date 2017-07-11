@@ -74,7 +74,7 @@ const TemplaterDemo = (function() {
       addExample();
       const template = untemplate.deduceTemplate(examples);
       const longhandTemplate = template.replace(/\?>/g, ' optional="true">');
-      const beautifiedTemplate = html_beautify(longhandTemplate, {indent_size: 2});
+      const beautifiedTemplate = html_beautify(longhandTemplate, { indent_size: 2 });
       const escapedTemplate = escapeHtml(beautifiedTemplate);
       const prettyTemplate = escapedTemplate
         .split('\n')
@@ -109,7 +109,7 @@ const TemplaterDemo = (function() {
   }
 
   return {
-    init: initTemplaterDemo
+    init: initTemplaterDemo,
   };
 })();
 

@@ -18,17 +18,17 @@ type BasicDomNode = {
 };
 export type TextDomNode = BasicDomNode & {
   nodeType: TEXT_NODE,
-  nodeValue: string
+  nodeValue: string,
 };
 export type ElementDomNode = BasicDomNode & {
   nodeType: ELEMENT_NODE,
   tagName: string,
-  attributes: NamedNodeMap
+  attributes: NamedNodeMap,
 };
 export type DomNode = TextDomNode | ElementDomNode;
 export type AnnotatedTree = {
   type: string,
-  children: AnnotatedTree[]
+  children: AnnotatedTree[],
 };
 
 export function templatesMatch(a: DomNode, b: DomNode): boolean {
@@ -76,19 +76,18 @@ export function parseTemplate(dsl: string): DomNode {
 }
 
 function desugar(dsl: string): string {
-  return dsl.trim()
-    .replace(/\?>/g, ' optional="true">')
-    .replace(/\?\/>/g, ' optional="true"\/>');
+  return dsl.trim().replace(/\?>/g, ' optional="true">').replace(/\?\/>/g, ' optional="true"/>');
 }
 
 export function getNonEmptyChildren(element: DomNode): DomNode[] {
-  return Array.from(element.childNodes || []).filter((child) => {
+  return Array.from(element.childNodes || []).filter(child => {
     if (isTextNode(child)) {
       const child_: TextDomNode = (child: any);
       return child_ && child_.nodeValue.trim() !== '';
     } else if (isElement(child)) {
       return true;
-    } else { // html comment nodes, etc
+    } else {
+      // html comment nodes, etc
       return false;
     }
   });

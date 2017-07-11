@@ -11,7 +11,7 @@ plugins.push(new UglifyJsPlugin({ minimize: true, sourceMap: true }));
 var config = {
   entry: {
     'lib/untemplate': path.join(__dirname, '/src/index.js'),
-    'demo/demo': path.join(__dirname, '/demo/templaterDemo.js')
+    'demo/demo': path.join(__dirname, '/demo/templaterDemo.js'),
   },
   devtool: 'source-map',
   output: {
@@ -19,16 +19,16 @@ var config = {
     filename: '[name].min.js',
     library: 'untemplate',
     libraryTarget: 'umd',
-    umdNamedDefine: true
+    umdNamedDefine: true,
   },
   module: {
     loaders: [
       {
         test: /(\.jsx|\.js)$/,
         loader: 'babel-loader',
-        exclude: /(node_modules|bower_components)/
-      }
-    ]
+        exclude: /(node_modules|bower_components)/,
+      },
+    ],
   },
   plugins: plugins,
 };

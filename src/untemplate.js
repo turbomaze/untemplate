@@ -2,24 +2,27 @@
 
 import sha1 from 'object-hash';
 import {
-  parseTemplate, getNonEmptyChildren, number,
-  parseHtml, isElement, isTextNode, isOptional
+  parseTemplate,
+  getNonEmptyChildren,
+  number,
+  parseHtml,
+  isElement,
+  isTextNode,
+  isOptional,
 } from './utils';
-import type {
-  DomNode, ElementDomNode, TextDomNode, AnnotatedTree
-} from './utils';
+import type { DomNode, ElementDomNode, TextDomNode, AnnotatedTree } from './utils';
 
 // types
 type AnnotatedDomNode = {
   type: string,
   dom: DomNode,
   children: AnnotatedDomNode[],
-  hash: string
+  hash: string,
 };
 type AnnotatedTemplate = {
   type: string,
   children: AnnotatedTemplate[],
-  optionalNumber: number
+  optionalNumber: number,
 };
 type hashNeedles = { [string]: { [number]: boolean } };
 
@@ -27,13 +30,13 @@ type hashNeedles = { [string]: { [number]: boolean } };
 // - dsl is a well-formatted template string
 // postconditions:
 // - return list of objects from template properties to values
-export function untemplate (dsl: string, element: ElementDomNode): {}[] {
+export function untemplate(dsl: string, element: ElementDomNode): {}[] {
   const template = parseTemplate(dsl);
-  const needles = precomputeNeedles(template);
+  const needles = precomputeNeedles(dsl);
   return findWithNeedles(template, needles, element);
 }
 
-export function untemplateWithNeedles (
+export function untemplateWithNeedles(
   dsl: string,
   needles: hashNeedles,
   element: ElementDomNode
@@ -42,48 +45,40 @@ export function untemplateWithNeedles (
   return findWithNeedles(template, needles, element);
 }
 
-function findWithNeedles (
-  template: DomNode,
-  needles: hashNeedles,
-  element: ElementDomNode
-) {
+function findWithNeedles(template: DomNode, needles: hashNeedles, element: ElementDomNode) {
   // search the tree in O(n) where n is number of nodes
   const labeledTemplate = labelOptionals(template);
   const annotatedElement: AnnotatedTree = (annotateDom(element): any);
   const haystack = number(annotatedElement);
   return findWithHashes(labeledTemplate, needles, haystack);
-
 }
 
-export function precomputeNeedles (template): hashNeedles {
+export function precomputeNeedles(dsl: string): hashNeedles {
   // iterate all possible combinations of optionals in O(n * 2^numOptionals)
   // NOTE: it's possible to get rid of the factor of n if necessary
+  const template = parseTemplate(dsl);
   const labeledTemplate = labelOptionals(template);
   const numOptionals = countOptionals(labeledTemplate);
-  const annotatedTemplate_: AnnotatedTemplate = (
-    annotateTemplate(labeledTemplate): any
-  );
+  const annotatedTemplate_: AnnotatedTemplate = (annotateTemplate(labeledTemplate): any);
   const needles = {};
   for (let i = 0; i < Math.pow(2, numOptionals); i++) {
     const hidden = {};
     for (let j = 0; j < numOptionals; j++) hidden[j] = (i >> j) % 2 === 1;
-    const hiddenTemplateHash = hashAnnotatedTemplate(
-      annotatedTemplate_, hidden
-    );
+    const hiddenTemplateHash = hashAnnotatedTemplate(annotatedTemplate_, hidden);
     needles[hiddenTemplateHash] = hidden;
   }
   return needles;
 }
 
-function countOptionals (template): number {
-  let numOptionals = (isElement(template) && isOptional(template)) ? 1 : 0;
-  numOptionals += Array.from(template.childNodes || [])
-    .map(countOptionals)
-    .reduce((a, b) => { return a + b; }, 0);
+function countOptionals(template): number {
+  let numOptionals = isElement(template) && isOptional(template) ? 1 : 0;
+  numOptionals += Array.from(template.childNodes || []).map(countOptionals).reduce((a, b) => {
+    return a + b;
+  }, 0);
   return numOptionals;
 }
 
-function labelOptionals (template): ElementDomNode {
+function labelOptionals(template): ElementDomNode {
   const labeledTemplate_: ElementDomNode = (template.cloneNode(true): any);
   let index = 0;
   let stack = [labeledTemplate_];
@@ -103,18 +98,16 @@ function labelOptionals (template): ElementDomNode {
 // produce an abstract repr of the template, including optional numbers
 // preconditions:
 // - template has its optionals labeled; isElement(template) === true
-function annotateTemplate (template): AnnotatedTemplate {
+function annotateTemplate(template): AnnotatedTemplate {
   const template_: ElementDomNode = (template: any);
   const type = template_.tagName.toLowerCase();
-  const children = getNonEmptyChildren(template_)
-    .filter(a => isElement(a))
-    .map(annotateTemplate)
+  const children = getNonEmptyChildren(template_).filter(a => isElement(a)).map(annotateTemplate);
   const optionalNumber = parseInt(template_.getAttribute('optionalNumber'));
   return { type, children, optionalNumber };
 }
 
 // precondition: annotatedTemplate is not optional
-function hashAnnotatedTemplate (
+function hashAnnotatedTemplate(
   annotatedTemplate: AnnotatedTemplate,
   hidden: { [key: number]: boolean }
 ): string {
@@ -123,7 +116,7 @@ function hashAnnotatedTemplate (
     .map(child => hashAnnotatedTemplate(child, hidden));
   return sha1({
     type: annotatedTemplate.type,
-    childHashes: childHashes
+    childHashes: childHashes,
   });
 }
 
@@ -135,22 +128,24 @@ function hashAnnotatedTemplate (
 //   hash: its hash,
 //   children: child nodes
 // }
-function annotateDom (dom: ElementDomNode): AnnotatedDomNode {
+function annotateDom(dom: ElementDomNode): AnnotatedDomNode {
   const type = dom.tagName.toLowerCase();
   const children = getNonEmptyChildren(dom)
-    .filter(a => { return isElement(a) && !isHidden(a); })
+    .filter(a => {
+      return isElement(a) && !isHidden(a);
+    })
     .map(dom => {
       const dom_: ElementDomNode = (dom: any);
       return annotateDom(dom_);
     });
   const hash = sha1({
     type: type,
-    childHashes: children.map(child => child.hash)
+    childHashes: children.map(child => child.hash),
   });
-  return { type, dom, children, hash};
+  return { type, dom, children, hash };
 }
 
-function findWithHashes (template, needles, haystack): {}[] {
+function findWithHashes(template, needles, haystack): {}[] {
   if (haystack.hash in needles) {
     // 1. if haystack matches a needle, apply the needle and return
     const hiddenTemplate = hideOptionals(template, needles[haystack.hash]);
@@ -166,7 +161,7 @@ function findWithHashes (template, needles, haystack): {}[] {
   }, []);
 }
 
-function treesMatch (a, b): boolean {
+function treesMatch(a, b): boolean {
   if (a.type !== b.type) return false;
   if (a.children.length !== b.children.length) return false;
 
@@ -177,35 +172,37 @@ function treesMatch (a, b): boolean {
   return true;
 }
 
-function applyTemplate (template, element): {} {
+function applyTemplate(template, element): {} {
   const state = {};
   _applyTemplate(template, element, state);
   return state;
 }
 
 // precondition: the template subtree matches the element subtree
-function _applyTemplate (
-  template: ElementDomNode, element: ElementDomNode, state
-): void {
+function _applyTemplate(template: ElementDomNode, element: ElementDomNode, state): void {
   // match the attributes of this node
   _applyTemplateToAttributes(template, element, state);
 
-  let tempPtr = 0, elementPtr = 0;
-  const templateKids = getNonEmptyChildren(template)
-    .filter((child) => { return isTextNode(child) || !isHidden(child); });
+  let tempPtr = 0,
+    elementPtr = 0;
+  const templateKids = getNonEmptyChildren(template).filter(child => {
+    return isTextNode(child) || !isHidden(child);
+  });
   const elementKids = getNonEmptyChildren(element);
   while (tempPtr < templateKids.length && elementPtr < elementKids.length) {
     const templateKid = templateKids[tempPtr];
     const elementKid = elementKids[elementPtr];
     const templateIsText = isTextNode(templateKid);
     const elementIsText = isTextNode(elementKid);
-    if (templateIsText && elementIsText) { // both text
+    if (templateIsText && elementIsText) {
+      // both text
       const templateKid_: TextDomNode = (templateKid: any);
       const elementKid_: TextDomNode = (elementKid: any);
       const keyName = getKeyName(templateKid_.nodeValue);
       if (keyName) addProperty(state, keyName, elementKid_.nodeValue.trim());
       tempPtr++, elementPtr++;
-    } else if (!templateIsText && !elementIsText) { // both nodes
+    } else if (!templateIsText && !elementIsText) {
+      // both nodes
       const templateKid_: ElementDomNode = (templateKid: any);
       const elementKid_: ElementDomNode = (elementKid: any);
       _applyTemplate(templateKid_, elementKid_, state);
@@ -213,19 +210,20 @@ function _applyTemplate (
     } else if (!templateIsText && elementIsText) {
       // element has excess text
       elementPtr++;
-    } else { // template has excess text
+    } else {
+      // template has excess text
       tempPtr++;
     }
   }
 }
 
 function _applyTemplateToAttributes(
-  template: ElementDomNode, element: ElementDomNode, state
+  template: ElementDomNode,
+  element: ElementDomNode,
+  state
 ): void {
-  Array.from(template.attributes).forEach((templateAttribute) => {
-    const elementAttribute = element.attributes.getNamedItem(
-      templateAttribute.name
-    );
+  Array.from(template.attributes).forEach(templateAttribute => {
+    const elementAttribute = element.attributes.getNamedItem(templateAttribute.name);
     if (elementAttribute && elementAttribute.value.trim() !== '') {
       const keyName = getKeyName(templateAttribute.value);
       if (keyName) {
@@ -235,7 +233,7 @@ function _applyTemplateToAttributes(
   });
 }
 
-function hideOptionals (template: ElementDomNode, pattern): ElementDomNode {
+function hideOptionals(template: ElementDomNode, pattern): ElementDomNode {
   const hiddenTemplate_: ElementDomNode = (template.cloneNode(true): any);
   let stack = [hiddenTemplate_];
   while (stack.length > 0) {
@@ -251,7 +249,7 @@ function hideOptionals (template: ElementDomNode, pattern): ElementDomNode {
   return hiddenTemplate_;
 }
 
-function addProperty (state: {}, key: string, value: any): void {
+function addProperty(state: {}, key: string, value: any): void {
   if (state.hasOwnProperty(key)) {
     if (!Array.isArray(state[key])) state[key] = [state[key]];
     state[key].push(value);
@@ -260,12 +258,12 @@ function addProperty (state: {}, key: string, value: any): void {
   }
 }
 
-function getKeyName (str) {
+function getKeyName(str) {
   const keyMatch = str.match(/{{(.+)}}/);
   return !!keyMatch ? keyMatch[1].trim() : false;
 }
 
-function isHidden (element): boolean {
+function isHidden(element): boolean {
   const isElementNode = isElement(element);
   return isElementNode && element.getAttribute('optionalHidden') === 'true';
 }
