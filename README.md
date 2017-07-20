@@ -12,6 +12,8 @@ This module:
 
 `<html> - {{ template }} = { structured: 'info' }`
 
+Alternatively, you can think of `untemplate.js` as a declarative DSL for web scraping.
+
 ## Usage
 
 ```js
@@ -77,6 +79,18 @@ Refer to the specs file at `spec/untemplateSpec.js` for examples of each of thes
   * this string all of the text in the provided examples in an aggregated form to communicate which portions of the template correspond to what
 * throws
   * `UnresolveableExamplesError`: thrown if the input examples cannot be reconciled for any reason (usually just because they do not share a common outermost tag)
+
+### `#deduceTemplateVerbose(elements)`
+
+* arguments
+  * `examples`: see arguments for `#deduceTemplate`
+* returns
+  * an object literal conaining the following keys
+    * `maximalDsl`: a template to match the examples with property selectors in all possible positions
+    * `consolidatedValues`: an object literal mapping the property selectors in `maximalDsl` to the literal values in `dslWithLiterals`
+    * `dslWithLiterals`: the same minimum template returned by `#deduceTemplate`
+* throws
+  * `UnresolveableExamplesError`: thrown in same cases as `#deduceTemplate`
 
 ## Running locally
 

@@ -40,8 +40,18 @@ type LossAndScript = {
   loss: number,
   script: Script,
 };
+type VerboseDslInfo = {
+  maximalDsl: string,
+  consolidatedValues: { [string]: string },
+  dslWithLiterals: string,
+};
 
 export function deduceTemplate(examples: string[]): string {
+  const info = deduceTemplateVerbose((examples: string[]));
+  return info.dslWithLiterals;
+}
+
+export function deduceTemplateVerbose(examples: string[]): VerboseDslInfo {
   const trees = examples.map(ex => {
     return number(countDescendants(annotateTree(parseHtml(ex))));
   });
@@ -59,8 +69,8 @@ export function deduceTemplate(examples: string[]): string {
     })
   );
   const template = insertValuesIntoProperties(structureWithProperties, consolidatedValues);
-  const dsl = convertTreeToString(template);
-  return dsl;
+  const dslWithLiterals = convertTreeToString(template);
+  return { maximalDsl, consolidatedValues, dslWithLiterals };
 }
 
 function annotateTree(element): AnnotatedTree {
