@@ -30,10 +30,16 @@ type hashNeedles = { [string]: { [number]: boolean } };
 // - dsl is a well-formatted template string
 // postconditions:
 // - return list of objects from template properties to values
-export function untemplate(dsl: string, element: ElementDomNode): {}[] {
+export function untemplate(
+  dsl: string,
+  element: ElementDomNode,
+  cb: ?(number) => mixed,
+  rate: ?number = 0.05
+): {}[] {
   const template = parseTemplate(dsl);
-  const needles = precomputeNeedles(dsl);
-  return findWithNeedles(template, needles, element);
+  const needles = precomputeNeedles(dsl, cb, rate);
+  const result = findWithNeedles(template, needles, element);
+  return result;
 }
 
 export function untemplateWithNeedles(
@@ -53,7 +59,11 @@ function findWithNeedles(template: DomNode, needles: hashNeedles, element: Eleme
   return findWithHashes(labeledTemplate, needles, haystack);
 }
 
-export function precomputeNeedles(dsl: string): hashNeedles {
+export function precomputeNeedles(
+  dsl: string,
+  cb: ?(number) => mixed,
+  rate: ?number = 0.05
+): hashNeedles {
   // iterate all possible combinations of optionals in O(n * 2^numOptionals)
   // NOTE: it's possible to get rid of the factor of n if necessary
   const template = parseTemplate(dsl);
@@ -61,11 +71,18 @@ export function precomputeNeedles(dsl: string): hashNeedles {
   const numOptionals = countOptionals(labeledTemplate);
   const annotatedTemplate_: AnnotatedTemplate = (annotateTemplate(labeledTemplate): any);
   const needles = {};
-  for (let i = 0; i < Math.pow(2, numOptionals); i++) {
+  const numHashes = Math.pow(2, numOptionals);
+  let percentFinished = 0;
+  for (let i = 0; i < numHashes; i++) {
     const hidden = {};
     for (let j = 0; j < numOptionals; j++) hidden[j] = (i >> j) % 2 === 1;
     const hiddenTemplateHash = hashAnnotatedTemplate(annotatedTemplate_, hidden);
     needles[hiddenTemplateHash] = hidden;
+
+    if (cb && rate && i / numHashes >= (Math.floor(percentFinished / rate) + 1) * rate) {
+      percentFinished = i / numHashes;
+      cb(percentFinished);
+    }
   }
   return needles;
 }

@@ -3,7 +3,7 @@
 import _ from 'lodash';
 import { getNonEmptyChildren, number, parseHtml, isElement, isTextNode, isOptional } from './utils';
 import type { DomNode, ElementDomNode } from './utils';
-import { untemplate } from './untemplate';
+import { precomputeNeedles, untemplateWithNeedles } from './untemplate';
 
 // constants
 const TIE_BREAKER = 1.000001; // biases the optimization to more intuitive templates
@@ -46,21 +46,30 @@ type VerboseDslInfo = {
   dslWithLiterals: string,
 };
 
-export function deduceTemplate(examples: string[]): string {
-  const info = deduceTemplateVerbose((examples: string[]));
+export function deduceTemplate(
+  examples: string[],
+  cb: ?(number) => mixed,
+  rate: ?number = 0.05
+): string {
+  const info = deduceTemplateVerbose(examples, cb, rate);
   return info.dslWithLiterals;
 }
 
-export function deduceTemplateVerbose(examples: string[]): VerboseDslInfo {
+export function deduceTemplateVerbose(
+  examples: string[],
+  cb: ?(number) => mixed,
+  rate: ?number = 0.05
+): VerboseDslInfo {
   const trees = examples.map(ex => {
     return number(countDescendants(annotateTree(parseHtml(ex))));
   });
   const deducedStructure = reconcileTrees(trees);
   const structureWithProperties = treeWithPropertySelectors(deducedStructure);
   const maximalDsl = convertTreeToString(structureWithProperties);
+  const needles = precomputeNeedles(maximalDsl, cb, rate);
   const exampleValues = examples.map(ex => parseHtml(ex)).filter(dom => isElement(dom)).map(dom => {
     const dom_: ElementDomNode = (dom: any);
-    return untemplate(maximalDsl, dom_);
+    return untemplateWithNeedles(maximalDsl, needles, dom_);
   });
   const consolidatedValues = consolidateValues(
     exampleValues.map(value => {
