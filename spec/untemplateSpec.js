@@ -653,6 +653,29 @@ describe('untemplate', () => {
         15 / 16,
       ]);
     });
+
+    it('should stop and return false if the progress callback stops', () => {
+      // progress will go as follows:
+      // 0.00, 0.06, 0.12, 0.18, 0.25, 0.31, 0.37, 0.43,
+      // 0.50, 0.56, 0.62, 0.68, 0.75, 0.81, 0.87, 0.93
+      let template = `<div>
+        <div ?> {{ prop-0-0 }} </div>
+        <div ?> {{ prop-0-1 }} </div>
+        <div ?> {{ prop-0-2 }} </div>
+        <div ?> {{ prop-0-3 }} </div>
+      </div>`;
+      const percentages = [];
+      const needles = precomputeNeedles(
+        template,
+        (progress, stop) => {
+          percentages.push(progress);
+          if (progress >= 0.5) stop();
+        },
+        0.1
+      );
+      expect(percentages).toEqual([2 / 16, 4 / 16, 5 / 16, 7 / 16, 8 / 16]);
+      expect(needles).toEqual(false);
+    });
   });
 
   // whitebox testing: only test the differences b/w #untemplate

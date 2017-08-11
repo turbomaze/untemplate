@@ -48,18 +48,19 @@ type VerboseDslInfo = {
 
 export function deduceTemplate(
   examples: string[],
-  cb: ?(number) => mixed,
+  cb: ?(number, () => mixed) => mixed,
   rate: ?number = 0.05
-): string {
+): string | false {
   const info = deduceTemplateVerbose(examples, cb, rate);
+  if (info === false) return false;
   return info.dslWithLiterals;
 }
 
 export function deduceTemplateVerbose(
   examples: string[],
-  cb: ?(number) => mixed,
+  cb: ?(number, () => mixed) => mixed,
   rate: ?number = 0.05
-): VerboseDslInfo {
+): VerboseDslInfo | false {
   const trees = examples.map(ex => {
     return number(countDescendants(annotateTree(parseHtml(ex))));
   });
@@ -67,6 +68,7 @@ export function deduceTemplateVerbose(
   const structureWithProperties = treeWithPropertySelectors(deducedStructure);
   const maximalDsl = convertTreeToString(structureWithProperties);
   const needles = precomputeNeedles(maximalDsl, cb, rate);
+  if (needles === false) return false;
   const exampleValues = examples.map(ex => parseHtml(ex)).filter(dom => isElement(dom)).map(dom => {
     const dom_: ElementDomNode = (dom: any);
     return untemplateWithNeedles(maximalDsl, needles, dom_);

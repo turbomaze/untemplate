@@ -1,6 +1,6 @@
 {
   "name": "untemplate",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "A node.js package that uses templates to extract structured info from HTML.",
   "main": "lib/untemplate.min.js",
   "author": "Anthony Liu",

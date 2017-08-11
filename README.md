@@ -64,7 +64,7 @@ Refer to the specs file at `spec/untemplateSpec.js` for examples of each of thes
 * arguments
   * `dsl`: the template as a string; valid templates are valid HTML, sans attributes, with one notable exception: `optional="true"`. This makes the node it's attached to optional in the template. Some sugar: `<div optional="true"></div>` <=> `<div?></div>`.
   * `element`: the root DOM element to search for the template in. This must be a proper DOM element, either output from some library like `xmldom` or from the browser
-  * `cb`: (optional) a progress callback that is periodically called with the approximate completion percentage
+  * `cb`: (optional) a progress callback that is periodically called with the approximate completion percentage (first argument) and a stop function (second argument) that causes `untemplate` to terminate early if called
   * `rate`: (optional) the approximate percent of progress that occurs between each call of `cb`
 * returns
   * a list of associative arrays containing the structured information contained in `element`
@@ -75,7 +75,7 @@ Refer to the specs file at `spec/untemplateSpec.js` for examples of each of thes
 
 * arguments
   * `dsl`: the template as a string; valid templates are valid HTML, sans attributes, with one notable exception: `optional="true"`. This makes the node it's attached to optional in the template. Some sugar: `<div optional="true"></div>` <=> `<div?></div>`.
-  * `cb`: (optional) a progress callback that is periodically called with the precomputation completion percentage
+  * `cb`: (optional) a progress callback that is periodically called with the precomputation completion percentage (first argument) and a stop function (second argument) that causes `precomputeNeedles` to terminate early if called
   * `rate`: (optional) the approximate percent of progress that occurs between each call of `cb`
 * returns
   * a JSON object containing information that allows you to call `#untemplateWithNeedles` instead of `#untemplate` for a drastic performance increase
@@ -84,7 +84,7 @@ Refer to the specs file at `spec/untemplateSpec.js` for examples of each of thes
 
 * arguments
   * `examples`: a list of HTML nodes as strings. These nodes should all represent the same "type of thing" in the page you'd like to apply the template to. For instance, the HTML for each search result in a long list of search results. These nodes must all share the same outermost tag.
-  * `cb`: (optional) a progress callback that is periodically called with the approximate completion percentage
+  * `cb`: (optional) a progress callback that is periodically called with the approximate completion percentage (first argument) and a stop function (second argument) that causes `deduceTemplate` to terminate early if called
   * `rate`: (optional) the approximate percent of progress that occurs between each call of `cb`
 * returns
   * a string representing the minimum template that matches all of the provided examples
@@ -97,7 +97,7 @@ Refer to the specs file at `spec/untemplateSpec.js` for examples of each of thes
 
 * arguments
   * `examples`: see arguments for `#deduceTemplate`
-  * `cb`: (optional) a progress callback that is periodically called with the approximate completion percentage
+  * `cb`: (optional) a progress callback that is periodically called with the approximate completion percentage (first argument) and a stop function (second argument) that causes `deduceTemplateVerbose` to terminate early if called
   * `rate`: (optional) the approximate percent of progress that occurs between each call of `cb`
 * returns
   * an object literal conaining the following keys

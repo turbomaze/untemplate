@@ -33,11 +33,12 @@ type hashNeedles = { [string]: { [number]: boolean } };
 export function untemplate(
   dsl: string,
   element: ElementDomNode,
-  cb: ?(number) => mixed,
+  cb: ?(number, () => mixed) => mixed,
   rate: ?number = 0.05
 ): {}[] {
   const template = parseTemplate(dsl);
   const needles = precomputeNeedles(dsl, cb, rate);
+  if (needles === false) return [];
   const result = findWithNeedles(template, needles, element);
   return result;
 }
@@ -61,9 +62,9 @@ function findWithNeedles(template: DomNode, needles: hashNeedles, element: Eleme
 
 export function precomputeNeedles(
   dsl: string,
-  cb: ?(number) => mixed,
+  cb: ?(number, () => mixed) => mixed,
   rate: ?number = 0.05
-): hashNeedles {
+): hashNeedles | false {
   // iterate all possible combinations of optionals in O(n * 2^numOptionals)
   // NOTE: it's possible to get rid of the factor of n if necessary
   const template = parseTemplate(dsl);
@@ -73,7 +74,9 @@ export function precomputeNeedles(
   const needles = {};
   const numHashes = Math.pow(2, numOptionals);
   let percentFinished = 0;
+  let stopEarly = false;
   for (let i = 0; i < numHashes; i++) {
+    if (stopEarly) return false;
     const hidden = {};
     for (let j = 0; j < numOptionals; j++) hidden[j] = (i >> j) % 2 === 1;
     const hiddenTemplateHash = hashAnnotatedTemplate(annotatedTemplate_, hidden);
@@ -81,7 +84,9 @@ export function precomputeNeedles(
 
     if (cb && rate && i / numHashes >= (Math.floor(percentFinished / rate) + 1) * rate) {
       percentFinished = i / numHashes;
-      cb(percentFinished);
+      cb(percentFinished, () => {
+        stopEarly = true;
+      });
     }
   }
   return needles;
