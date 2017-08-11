@@ -654,7 +654,7 @@ describe('untemplate', () => {
       ]);
     });
 
-    it('should stop and return false if the progress callback stops', () => {
+    it('should stop and return false if the progress callback stops using percentage', () => {
       // progress will go as follows:
       // 0.00, 0.06, 0.12, 0.18, 0.25, 0.31, 0.37, 0.43,
       // 0.50, 0.56, 0.62, 0.68, 0.75, 0.81, 0.87, 0.93
@@ -674,6 +674,32 @@ describe('untemplate', () => {
         0.1
       );
       expect(percentages).toEqual([2 / 16, 4 / 16, 5 / 16, 7 / 16, 8 / 16]);
+      expect(needles).toEqual(false);
+    });
+
+    it('should stop and return false if the progress callback stops using time', () => {
+      // progress will go as follows:
+      // 0.00, 0.06, 0.12, 0.18, 0.25, 0.31, 0.37, 0.43,
+      // 0.50, 0.56, 0.62, 0.68, 0.75, 0.81, 0.87, 0.93
+      let template = `<div>
+        <div ?> {{ prop-0-0 }} </div>
+        <div ?> {{ prop-0-1 }} </div>
+        <div ?> {{ prop-0-2 }} </div>
+        <div ?> {{ prop-0-3 }} </div>
+        <div ?> {{ prop-0-4 }} </div>
+        <div ?> {{ prop-0-5 }} </div>
+        <div ?> {{ prop-0-6 }} </div>
+        <div ?> {{ prop-0-7 }} </div>
+      </div>`;
+      const start = +new Date();
+      const needles = precomputeNeedles(
+        template,
+        (progress, stop) => {
+          const duration = +new Date() - start;
+          if (duration > 10 && progress < 0.75) stop();
+        },
+        5 // in ms
+      );
       expect(needles).toEqual(false);
     });
   });

@@ -73,6 +73,8 @@ export function precomputeNeedles(
   const annotatedTemplate_: AnnotatedTemplate = (annotateTemplate(labeledTemplate): any);
   const needles = {};
   const numHashes = Math.pow(2, numOptionals);
+  const start = +new Date();
+  let lastNotified = 0;
   let percentFinished = 0;
   let stopEarly = false;
   for (let i = 0; i < numHashes; i++) {
@@ -82,11 +84,24 @@ export function precomputeNeedles(
     const hiddenTemplateHash = hashAnnotatedTemplate(annotatedTemplate_, hidden);
     needles[hiddenTemplateHash] = hidden;
 
-    if (cb && rate && i / numHashes >= (Math.floor(percentFinished / rate) + 1) * rate) {
-      percentFinished = i / numHashes;
-      cb(percentFinished, () => {
-        stopEarly = true;
-      });
+    const progress = i / numHashes;
+    if (rate && rate < 1) {
+      // go by percent done
+      if (cb && progress >= (Math.floor(percentFinished / rate) + 1) * rate) {
+        percentFinished = progress;
+        cb(percentFinished, () => {
+          stopEarly = true;
+        });
+      }
+    } else if (rate && rate >= 1) {
+      // go by ms instead of percent done
+      const duration = +new Date() - lastNotified;
+      if (cb && duration > rate) {
+        lastNotified = +new Date();
+        cb(progress, () => {
+          stopEarly = true;
+        });
+      }
     }
   }
   return needles;
