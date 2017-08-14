@@ -1,5 +1,6 @@
 import { DOMParser } from 'xmldom';
 import { untemplate, untemplateWithNeedles, precomputeNeedles } from '../src/index.js';
+import { EarlyStopException } from '../src/untemplate.js';
 
 function getDomFromHtml(html) {
   return new DOMParser().parseFromString(html.trim(), 'text/xml').firstChild;
@@ -665,16 +666,17 @@ describe('untemplate', () => {
         <div ?> {{ prop-0-3 }} </div>
       </div>`;
       const percentages = [];
-      const needles = precomputeNeedles(
-        template,
-        (progress, stop) => {
-          percentages.push(progress);
-          if (progress >= 0.5) stop();
-        },
-        0.1
-      );
+      expect(() => {
+        precomputeNeedles(
+          template,
+          (progress, stop) => {
+            percentages.push(progress);
+            if (progress >= 0.5) stop();
+          },
+          0.1
+        );
+      }).toThrow(new EarlyStopException());
       expect(percentages).toEqual([2 / 16, 4 / 16, 5 / 16, 7 / 16, 8 / 16]);
-      expect(needles).toEqual(false);
     });
 
     it('should stop and return false if the progress callback stops using time', () => {
@@ -692,15 +694,16 @@ describe('untemplate', () => {
         <div ?> {{ prop-0-7 }} </div>
       </div>`;
       const start = +new Date();
-      const needles = precomputeNeedles(
-        template,
-        (progress, stop) => {
-          const duration = +new Date() - start;
-          if (duration > 10 && progress < 0.75) stop();
-        },
-        5 // in ms
-      );
-      expect(needles).toEqual(false);
+      expect(() => {
+        precomputeNeedles(
+          template,
+          (progress, stop) => {
+            const duration = +new Date() - start;
+            if (duration > 10 && progress < 0.75) stop();
+          },
+          5 // in ms
+        );
+      }).toThrow(new EarlyStopException());
     });
   });
 

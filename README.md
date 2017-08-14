@@ -70,6 +70,8 @@ Refer to the specs file at `spec/untemplateSpec.js` for examples of each of thes
   * a list of associative arrays containing the structured information contained in `element`
   * each matching of the template corresponds to one associative array in the returned list
   * the returned list is in left-to-right BFS order
+* throws
+  * `EarlyStopException`: thrown if the `cb` function calls its `stop` argument
 
 ### `#precomputeNeedles(dsl[, cb, rate])`
 
@@ -79,6 +81,8 @@ Refer to the specs file at `spec/untemplateSpec.js` for examples of each of thes
   * `rate`: (optional) the approximate percent of progress that occurs between each call of `cb`
 * returns
   * a JSON object containing information that allows you to call `#untemplateWithNeedles` instead of `#untemplate` for a drastic performance increase
+* throws
+  * `EarlyStopException`: thrown if the `cb` function calls its `stop` argument
 
 ### `#deduceTemplate(elements[, cb, rate])`
 
@@ -92,6 +96,7 @@ Refer to the specs file at `spec/untemplateSpec.js` for examples of each of thes
   * this string all of the text in the provided examples in an aggregated form to communicate which portions of the template correspond to what
 * throws
   * `UnresolveableExamplesError`: thrown if the input examples cannot be reconciled for any reason (usually just because they do not share a common outermost tag)
+  * `EarlyStopException`: thrown if the `cb` function calls its `stop` argument
 
 ### `#deduceTemplateVerbose(elements[, cb, rate])`
 
@@ -106,6 +111,7 @@ Refer to the specs file at `spec/untemplateSpec.js` for examples of each of thes
     * `dslWithLiterals`: the same minimum template returned by `#deduceTemplate`
 * throws
   * `UnresolveableExamplesError`: thrown in same cases as `#deduceTemplate`
+  * `EarlyStopException`: thrown if the `cb` function calls its `stop` argument
 
 ## Running locally
 

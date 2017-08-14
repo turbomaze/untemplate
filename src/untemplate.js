@@ -38,7 +38,6 @@ export function untemplate(
 ): {}[] {
   const template = parseTemplate(dsl);
   const needles = precomputeNeedles(dsl, cb, rate);
-  if (needles === false) return [];
   const result = findWithNeedles(template, needles, element);
   return result;
 }
@@ -64,7 +63,7 @@ export function precomputeNeedles(
   dsl: string,
   cb: ?(number, () => mixed) => mixed,
   rate: ?number = 0.05
-): hashNeedles | false {
+): hashNeedles {
   // iterate all possible combinations of optionals in O(n * 2^numOptionals)
   // NOTE: it's possible to get rid of the factor of n if necessary
   const template = parseTemplate(dsl);
@@ -78,7 +77,7 @@ export function precomputeNeedles(
   let percentFinished = 0;
   let stopEarly = false;
   for (let i = 0; i < numHashes; i++) {
-    if (stopEarly) return false;
+    if (stopEarly) throw new EarlyStopException();
     const hidden = {};
     for (let j = 0; j < numOptionals; j++) hidden[j] = (i >> j) % 2 === 1;
     const hiddenTemplateHash = hashAnnotatedTemplate(annotatedTemplate_, hidden);
@@ -303,4 +302,12 @@ function getKeyName(str) {
 function isHidden(element): boolean {
   const isElementNode = isElement(element);
   return isElementNode && element.getAttribute('optionalHidden') === 'true';
+}
+
+export class EarlyStopException extends Error {
+  constructor(...args: any) {
+    super(...args);
+    this.name = 'EarlyStopException';
+    Error.captureStackTrace(this, EarlyStopException);
+  }
 }
