@@ -1,6 +1,6 @@
 import { DOMParser } from 'xmldom';
 import { untemplate, untemplateWithNeedles, precomputeNeedles } from '../src/index.js';
-import { EarlyStopException } from '../src/untemplate.js';
+import { EarlyStopException, MismatchedMultiPartTemplateError } from '../src/untemplate.js';
 
 function getDomFromHtml(html) {
   return new DOMParser().parseFromString(html.trim(), 'text/xml').firstChild;
@@ -586,6 +586,44 @@ describe('untemplate', () => {
         prop1: 'example 3',
       });
     });
+
+    it('should be able to apply multi-part templates', () => {
+      let page = getDomFromHtml(`
+        <body>
+          <div>
+            <span> example 1 </span>
+            <span> example 2 </span>
+          </div>
+          <div>
+            <span> junk </span>
+            <span> junk </span>
+            <span> junk </span>
+          </div>
+          <div>
+            <div>
+              <a> example 3 </a>
+            </div>
+          </div>
+        </body>
+      `);
+      let template = `
+        <div>
+          <span> {{ part-0-prop1 }} </span>
+          <span> {{ part-0-prop2 }} </span>
+        </div>
+        <div>
+          <a> {{ part-1-prop3 }} </a>
+        </div>
+      `;
+      let structuredData = untemplate(template, page);
+
+      expect(structuredData.length).toEqual(1);
+      expect(structuredData[0]).toEqual({
+        'part-0-prop1': 'example 1',
+        'part-0-prop2': 'example 2',
+        'part-1-prop3': 'example 3',
+      });
+    });
   });
 
   describe('#precomputeNeedles', () => {
@@ -593,7 +631,9 @@ describe('untemplate', () => {
       let template = '<div> {{ greeting }} </div>';
       let needles = precomputeNeedles(template);
       expect(needles).toEqual({
-        f66b8069cbb849233816cec5a787b0fd1ca88c8d: {},
+        0: {
+          f66b8069cbb849233816cec5a787b0fd1ca88c8d: {},
+        },
       });
     });
 
@@ -601,9 +641,11 @@ describe('untemplate', () => {
       let template = '<div> <span> </span> <a?> <i?> </i> </a> </div>';
       let needles = precomputeNeedles(template);
       expect(needles).toEqual({
-        da0541aed47d67deff3f27a7b9a0426e48ca42f5: { '0': false, '1': false },
-        e15e877e9cd4f08ca9f974145dba2cce17b52351: { '0': true, '1': true },
-        '93e5663349ed25455036a070ca126a7c6ffa6a62': { '0': false, '1': true },
+        0: {
+          da0541aed47d67deff3f27a7b9a0426e48ca42f5: { '0': false, '1': false },
+          e15e877e9cd4f08ca9f974145dba2cce17b52351: { '0': true, '1': true },
+          '93e5663349ed25455036a070ca126a7c6ffa6a62': { '0': false, '1': true },
+        },
       });
     });
 
@@ -619,14 +661,16 @@ describe('untemplate', () => {
       </section>`;
       let needles = precomputeNeedles(template);
       expect(needles).toEqual({
-        '87b776001fb9a441cb3c1d36779d44c3215d592f': { '0': false, '1': false, '2': false },
-        f7ede8333e7afdfc97988f6caa200e102eb2a189: { '0': true, '1': false, '2': false },
-        '5df89e012de7c4ae646f454a574c0cbacf0dc569': { '0': false, '1': true, '2': false },
-        '6328c4d73164208a5eb208073d7d443a4bc35784': { '0': true, '1': true, '2': false },
-        e1d539e88dd849282e4695c2839f0c83147d1c92: { '0': false, '1': false, '2': true },
-        '43d1a619425b96650dd11530bc39eb08e986cced': { '0': true, '1': false, '2': true },
-        cc1d189b6c2647ae4132d0450a91f00617d4ed97: { '0': false, '1': true, '2': true },
-        eac18323d9cfe8cb1d9df96a9eb3cf3916a92b63: { '0': true, '1': true, '2': true },
+        0: {
+          '87b776001fb9a441cb3c1d36779d44c3215d592f': { '0': false, '1': false, '2': false },
+          f7ede8333e7afdfc97988f6caa200e102eb2a189: { '0': true, '1': false, '2': false },
+          '5df89e012de7c4ae646f454a574c0cbacf0dc569': { '0': false, '1': true, '2': false },
+          '6328c4d73164208a5eb208073d7d443a4bc35784': { '0': true, '1': true, '2': false },
+          e1d539e88dd849282e4695c2839f0c83147d1c92: { '0': false, '1': false, '2': true },
+          '43d1a619425b96650dd11530bc39eb08e986cced': { '0': true, '1': false, '2': true },
+          cc1d189b6c2647ae4132d0450a91f00617d4ed97: { '0': false, '1': true, '2': true },
+          eac18323d9cfe8cb1d9df96a9eb3cf3916a92b63: { '0': true, '1': true, '2': true },
+        },
       });
     });
 
@@ -705,13 +749,32 @@ describe('untemplate', () => {
         );
       }).toThrow(new EarlyStopException());
     });
+
+    it('should precompute needles of multi-part templates', () => {
+      let template = `
+        <div> {{ greeting }} </div>
+        Filler that should get stripped out
+        <div> <span> </span> <a?> <i?> </i> </a> </div>
+      `;
+      let needles = precomputeNeedles(template);
+      expect(needles).toEqual({
+        0: {
+          f66b8069cbb849233816cec5a787b0fd1ca88c8d: {},
+        },
+        1: {
+          da0541aed47d67deff3f27a7b9a0426e48ca42f5: { '0': false, '1': false },
+          e15e877e9cd4f08ca9f974145dba2cce17b52351: { '0': true, '1': true },
+          '93e5663349ed25455036a070ca126a7c6ffa6a62': { '0': false, '1': true },
+        },
+      });
+    });
   });
 
   // whitebox testing: only test the differences b/w #untemplate
   describe('#untemplateWithNeedles', () => {
     it('should match simple exact templates', () => {
       let page = getDomFromHtml('<div> hello </div>');
-      let needles = { f66b8069cbb849233816cec5a787b0fd1ca88c8d: {} };
+      let needles = { 0: { f66b8069cbb849233816cec5a787b0fd1ca88c8d: {} } };
       let template = '<div> {{ greeting }} </div>';
       let structuredData = untemplateWithNeedles(template, needles, page);
 
@@ -734,8 +797,10 @@ describe('untemplate', () => {
         </ul>
       `);
       let needles = {
-        '7a4e9ca7c88bf21052c02343cc9268847b15e9ef': { '0': false },
-        '3d17cb2d59e752e8cbb04e3a78a2bb614b247d32': { '0': true },
+        0: {
+          '7a4e9ca7c88bf21052c02343cc9268847b15e9ef': { '0': false },
+          '3d17cb2d59e752e8cbb04e3a78a2bb614b247d32': { '0': true },
+        },
       };
       let template = `
         <li>
@@ -774,7 +839,9 @@ describe('untemplate', () => {
         </body>
       `);
       let needles = {
-        '7c8a9440016b5dce45c0f7dc926d85a8a1f468be': {},
+        0: {
+          '7c8a9440016b5dce45c0f7dc926d85a8a1f468be': {},
+        },
       };
       let template = `
         <ul>
@@ -803,10 +870,12 @@ describe('untemplate', () => {
         </body>
       `);
       let needles = {
-        '76d087f9f3cd2ce6d424d7ac812dc42502339769': { '0': false, '1': false },
-        '9b1eef05cfb98c44abddc27b1c07a74fe9f93b3e': { '0': true, '1': false },
-        '93e5663349ed25455036a070ca126a7c6ffa6a62': { '0': false, '1': true },
-        e15e877e9cd4f08ca9f974145dba2cce17b52351: { '0': true, '1': true },
+        0: {
+          '76d087f9f3cd2ce6d424d7ac812dc42502339769': { '0': false, '1': false },
+          '9b1eef05cfb98c44abddc27b1c07a74fe9f93b3e': { '0': true, '1': false },
+          '93e5663349ed25455036a070ca126a7c6ffa6a62': { '0': false, '1': true },
+          e15e877e9cd4f08ca9f974145dba2cce17b52351: { '0': true, '1': true },
+        },
       };
       let template = `
         <div>
@@ -826,6 +895,71 @@ describe('untemplate', () => {
       expect(structuredData[1]).toEqual({
         sectionTitle: 'filler',
       });
+    });
+
+    it('should match multi-part templates using multiple sets of needles', () => {
+      let page = getDomFromHtml(`
+        <body>
+          <header> my cool homepage </header>
+          <div>
+            <span> example 1 </span>
+          </div>
+          <div> example 2 </div>
+        </body>
+      `);
+      let needles = {
+        0: {
+          f66b8069cbb849233816cec5a787b0fd1ca88c8d: {},
+        },
+        1: {
+          da0541aed47d67deff3f27a7b9a0426e48ca42f5: { '0': false, '1': false },
+          e15e877e9cd4f08ca9f974145dba2cce17b52351: { '0': true, '1': true },
+          '93e5663349ed25455036a070ca126a7c6ffa6a62': { '0': false, '1': true },
+        },
+      };
+      let template = `
+        <div> {{ greeting }} </div>
+        This should get stripped out
+        <div> <span> {{ otherGreeting }} </span> <a?> <i?> </i> </a> </div>
+      `;
+      let structuredData = untemplateWithNeedles(template, needles, page);
+
+      expect(structuredData.length).toEqual(1);
+      expect(structuredData[0]).toEqual({
+        greeting: 'example 2',
+        otherGreeting: 'example 1',
+      });
+    });
+
+    it('should throw a MismatchedMultiPartTemplateError if a multi-part template matches > 1', () => {
+      let page = getDomFromHtml(`
+        <body>
+          <header> my cool homepage </header>
+          <div>
+            <span> example 1 </span>
+          </div>
+          <div> example 2 </div>
+          <div> example 3 </div>
+        </body>
+      `);
+      let needles = {
+        0: {
+          f66b8069cbb849233816cec5a787b0fd1ca88c8d: {},
+        },
+        1: {
+          da0541aed47d67deff3f27a7b9a0426e48ca42f5: { '0': false, '1': false },
+          e15e877e9cd4f08ca9f974145dba2cce17b52351: { '0': true, '1': true },
+          '93e5663349ed25455036a070ca126a7c6ffa6a62': { '0': false, '1': true },
+        },
+      };
+      let template = `
+        <div> {{ greeting }} </div>
+        This should get stripped out
+        <div> <span> {{ otherGreeting }} </span> <a?> <i?> </i> </a> </div>
+      `;
+      expect(() => {
+        let structuredData = untemplateWithNeedles(template, needles, page);
+      }).toThrow(new MismatchedMultiPartTemplateError());
     });
   });
 });

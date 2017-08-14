@@ -11,6 +11,7 @@ const TEXT_NODE = DIV.firstChild.nodeType;
 
 // types
 type BasicDomNode = {
+  firstChild: DomNode,
   childNodes: DomNode[],
   cloneNode: (deep: boolean) => DomNode,
   getAttribute: (name: string) => ?string,
@@ -31,7 +32,13 @@ export type AnnotatedTree = {
   children: AnnotatedTree[],
 };
 
-export function templatesMatch(a: DomNode, b: DomNode): boolean {
+export function templatesMatch(a: DomNode[], b: DomNode[]): boolean {
+  if (a.length !== b.length) return false;
+
+  return a.map((part, i) => singleTemplatesMatch(part, b[i])).every(bool => bool);
+}
+
+function singleTemplatesMatch(a: DomNode, b: DomNode): boolean {
   if (isElement(a) && isElement(b)) {
     const a_: ElementDomNode = (a: any);
     const b_: ElementDomNode = (b: any);
@@ -44,7 +51,7 @@ export function templatesMatch(a: DomNode, b: DomNode): boolean {
     if (aChildren.length !== bChildren.length) return false;
 
     for (let i = 0; i < aChildren.length; i++) {
-      if (!templatesMatch(aChildren[i], bChildren[i])) return false;
+      if (!singleTemplatesMatch(aChildren[i], bChildren[i])) return false;
     }
 
     return true;
@@ -71,8 +78,8 @@ function attributesMatch(a: ElementDomNode, b: ElementDomNode): boolean {
   return true;
 }
 
-export function parseTemplate(dsl: string): DomNode {
-  return parseHtml(desugar(dsl));
+export function parseTemplate(dsl: string): DomNode[] {
+  return Array.from(parseHtml(desugar(dsl)).childNodes).filter(isElement);
 }
 
 function desugar(dsl: string): string {
@@ -108,7 +115,7 @@ export function number(tree: AnnotatedTree) {
 }
 
 export function parseHtml(html: string): DomNode {
-  return PARSER.parseFromString(html.trim(), 'text/xml').firstChild;
+  return PARSER.parseFromString(html.trim(), 'text/xml');
 }
 
 export function isElement(element: DomNode): boolean {

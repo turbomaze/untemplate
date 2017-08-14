@@ -24,12 +24,13 @@ type AnnotatedTemplate = {
   children: AnnotatedTemplate[],
   optionalNumber: number,
 };
-type hashNeedles = { [string]: { [number]: boolean } };
+type hashNeedles = { [number]: { [string]: { [number]: boolean } } };
 
 // preconditions:
 // - dsl is a well-formatted template string
 // postconditions:
 // - return list of objects from template properties to values
+// - throws EarlyStopException if the user calls the stop arg to cb
 export function untemplate(
   dsl: string,
   element: ElementDomNode,
@@ -42,6 +43,9 @@ export function untemplate(
   return result;
 }
 
+// postconditions:
+// - throws MismatchedMultiPartTemplateError if the template contains multiple
+//   parts and one of the parts matched more than once
 export function untemplateWithNeedles(
   dsl: string,
   needles: hashNeedles,
@@ -51,22 +55,53 @@ export function untemplateWithNeedles(
   return findWithNeedles(template, needles, element);
 }
 
-function findWithNeedles(template: DomNode, needles: hashNeedles, element: ElementDomNode) {
+// postconditions:
+// - throws MismatchedMultiPartTemplateError if the template contains multiple
+//   parts and one of the parts matched more than once
+function findWithNeedles(template: DomNode[], needles: hashNeedles, element: ElementDomNode) {
   // search the tree in O(n) where n is number of nodes
-  const labeledTemplate = labelOptionals(template);
-  const annotatedElement: AnnotatedTree = (annotateDom(element): any);
-  const haystack = number(annotatedElement);
-  return findWithHashes(labeledTemplate, needles, haystack);
+  return template.reduce((result, part, i) => {
+    const labeledTemplate = labelOptionals(part);
+    const annotatedElement: AnnotatedTree = (annotateDom(element): any);
+    const haystack = number(annotatedElement);
+    const partialResult = findWithHashes(labeledTemplate, needles[i], haystack);
+    if (template.length > 1) {
+      if (partialResult.length > 1) {
+        throw new MismatchedMultiPartTemplateError();
+      } else if (partialResult.length === 1) {
+        return [Object.assign({}, result[0], partialResult[0])];
+      } else {
+        return result;
+      }
+    } else {
+      return partialResult;
+    }
+  }, []);
 }
 
+// postconditions:
+// - throws EarlyStopException if the user calls the stop arg to cb
 export function precomputeNeedles(
   dsl: string,
   cb: ?(number, () => mixed) => mixed,
   rate: ?number = 0.05
 ): hashNeedles {
+  const needles = {};
+  parseTemplate(dsl).forEach((part, i) => {
+    needles[i] = precomputeNeedlesSingleTemplate(part, cb, rate);
+  });
+  return needles;
+}
+
+// postconditions:
+// - throws EarlyStopException if the user calls the stop arg to cb
+function precomputeNeedlesSingleTemplate(
+  template: DomNode,
+  cb: ?(number, () => mixed) => mixed,
+  rate: ?number = 0.05
+): hashNeedles {
   // iterate all possible combinations of optionals in O(n * 2^numOptionals)
   // NOTE: it's possible to get rid of the factor of n if necessary
-  const template = parseTemplate(dsl);
   const labeledTemplate = labelOptionals(template);
   const numOptionals = countOptionals(labeledTemplate);
   const annotatedTemplate_: AnnotatedTemplate = (annotateTemplate(labeledTemplate): any);
@@ -309,5 +344,13 @@ export class EarlyStopException extends Error {
     super(...args);
     this.name = 'EarlyStopException';
     Error.captureStackTrace(this, EarlyStopException);
+  }
+}
+
+export class MismatchedMultiPartTemplateError extends Error {
+  constructor(...args: any) {
+    super(...args);
+    this.name = 'MismatchedMultiPartTemplateError';
+    Error.captureStackTrace(this, MismatchedMultiPartTemplateError);
   }
 }

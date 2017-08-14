@@ -543,5 +543,47 @@ describe('untemplate', () => {
       expect(dslInfo.consolidatedValues).toEqual(expectedConsolidatedValues);
       expect(templatesMatch(expectedLiteralsTemplate, literalsTemplate)).toEqual(true);
     });
+
+    it('should properly set property selector prefixes', () => {
+      const examples = [
+        `
+        <div>
+          <span> example 1 </span>
+          <span> example 2 </span>
+        </div>
+      `,
+        `
+        <div>
+          <span> example 3 </span>
+          <span> example 4 </span>
+        </div>
+      `,
+      ];
+      const dslInfo = deduceTemplateVerbose(examples, 'testing');
+      const maximalTemplate = parseTemplate(dslInfo.maximalDsl);
+      const expectedMaximalTemplate = parseTemplate(`
+        <div>
+          {{ testing-property-0-0 }}
+          <span> {{ testing-property-1-0 }} </span>
+          {{ testing-property-0-1 }}
+          <span> {{ testing-property-2-0 }} </span>
+          {{ testing-property-0-2 }}
+        </div>
+      `);
+      const expectedConsolidatedValues = {
+        'testing-property-1-0': ['example 1', 'example 3'],
+        'testing-property-2-0': ['example 2', 'example 4'],
+      };
+      const literalsTemplate = parseTemplate(dslInfo.dslWithLiterals);
+      const expectedLiteralsTemplate = parseTemplate(`
+        <div>
+          <span> example 1,example 3 </span>
+          <span> example 2,example 4 </span>
+        </div>
+      `);
+      expect(templatesMatch(expectedMaximalTemplate, maximalTemplate)).toEqual(true);
+      expect(dslInfo.consolidatedValues).toEqual(expectedConsolidatedValues);
+      expect(templatesMatch(expectedLiteralsTemplate, literalsTemplate)).toEqual(true);
+    });
   });
 });

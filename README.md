@@ -34,7 +34,7 @@ let element = get-dom-from-html(`
 let template = `
   <div>
     <span> {{ region }} </span>
-    <span?> {{ country }} </span>
+    <span ?> {{ country }} </span>
   </div>
 `;
 let data = untemplate(template, element);
@@ -98,10 +98,11 @@ Refer to the specs file at `spec/untemplateSpec.js` for examples of each of thes
   * `UnresolveableExamplesError`: thrown if the input examples cannot be reconciled for any reason (usually just because they do not share a common outermost tag)
   * `EarlyStopException`: thrown if the `cb` function calls its `stop` argument
 
-### `#deduceTemplateVerbose(elements[, cb, rate])`
+### `#deduceTemplateVerbose(elements[, prefix, cb, rate])`
 
 * arguments
   * `examples`: see arguments for `#deduceTemplate`
+  * `prefix`: (optional) a string to prefix all of the generated property selectors with
   * `cb`: (optional) a progress callback that is periodically called with the approximate completion percentage (first argument) and a stop function (second argument) that causes `deduceTemplateVerbose` to terminate early if called
   * `rate`: (optional) the approximate percent of progress that occurs between each call of `cb`
 * returns

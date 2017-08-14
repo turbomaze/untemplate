@@ -46,33 +46,39 @@ type VerboseDslInfo = {
   dslWithLiterals: string,
 };
 
+// postconditions:
+// - throws EarlyStopException if the user calls the stop arg to cb
 export function deduceTemplate(
   examples: string[],
   cb: ?(number, () => mixed) => mixed,
   rate: ?number = 0.05
-): string | false {
-  const info = deduceTemplateVerbose(examples, cb, rate);
-  if (info === false) return false;
+): string {
+  const info = deduceTemplateVerbose(examples, null, cb, rate);
   return info.dslWithLiterals;
 }
 
+// postconditions:
+// - throws EarlyStopException if the user calls the stop arg to cb
 export function deduceTemplateVerbose(
   examples: string[],
+  prefix: ?string,
   cb: ?(number, () => mixed) => mixed,
   rate: ?number = 0.05
-): VerboseDslInfo | false {
+): VerboseDslInfo {
   const trees = examples.map(ex => {
-    return number(countDescendants(annotateTree(parseHtml(ex))));
+    return number(countDescendants(annotateTree(parseHtml(ex).firstChild)));
   });
   const deducedStructure = reconcileTrees(trees);
-  const structureWithProperties = treeWithPropertySelectors(deducedStructure);
+  const structureWithProperties = treeWithPropertySelectors(deducedStructure, prefix);
   const maximalDsl = convertTreeToString(structureWithProperties);
   const needles = precomputeNeedles(maximalDsl, cb, rate);
-  if (needles === false) return false;
-  const exampleValues = examples.map(ex => parseHtml(ex)).filter(dom => isElement(dom)).map(dom => {
-    const dom_: ElementDomNode = (dom: any);
-    return untemplateWithNeedles(maximalDsl, needles, dom_);
-  });
+  const exampleValues = examples
+    .map(ex => parseHtml(ex).firstChild)
+    .filter(dom => isElement(dom))
+    .map(dom => {
+      const dom_: ElementDomNode = (dom: any);
+      return untemplateWithNeedles(maximalDsl, needles, dom_);
+    });
   const consolidatedValues = consolidateValues(
     exampleValues.map(value => {
       // assumption: maximalDsl matches exactly once in each example
@@ -314,13 +320,13 @@ function hasSameRoot(a, b) {
 }
 
 // precondition: tree has no nodes of type 'text'
-function treeWithPropertySelectors(tree) {
+function treeWithPropertySelectors(tree, prefix: ?string) {
   const copy = _.clone(tree);
   const children = [];
-  const base = `property-${copy.index}-`;
+  const base = `${prefix ? prefix + '-' : ''}property-${copy.index}-`;
   for (let i = 0; i < copy.children.length; i++) {
     children.push({ type: 'text', value: `{{ ${base + i} }}` });
-    children.push(treeWithPropertySelectors(copy.children[i]));
+    children.push(treeWithPropertySelectors(copy.children[i], prefix));
   }
   children.push({ type: 'text', value: `{{ ${base + copy.children.length} }}` });
   copy.children = children;

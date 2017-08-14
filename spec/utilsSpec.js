@@ -90,7 +90,9 @@ describe('untemplate', () => {
   describe('#parseTemplate', () => {
     it('should parse simple templates correctly', () => {
       const dsl = '<div><span></span></div>';
-      const template = parseTemplate(dsl);
+      const templateParts = parseTemplate(dsl);
+      expect(templateParts.length).toEqual(1);
+      const template = templateParts[0];
       expect(template.tagName).toEqual('div');
       expect(isOptional(template)).not.toEqual(true);
       expect(template.childNodes.length).toEqual(1);
@@ -100,7 +102,9 @@ describe('untemplate', () => {
 
     it('should parse templates with verbose optional syntax', () => {
       const dsl = '<ul><li></li><li optional="true"></li></ul>';
-      const template = parseTemplate(dsl);
+      const templateParts = parseTemplate(dsl);
+      expect(templateParts.length).toEqual(1);
+      const template = templateParts[0];
       expect(template.tagName).toEqual('ul');
       expect(isOptional(template)).not.toEqual(true);
       expect(template.childNodes.length).toEqual(2);
@@ -112,7 +116,9 @@ describe('untemplate', () => {
 
     it('should parse templates with shorthand optional syntax', () => {
       const dsl = '<ul><li></li><li?></li></ul>';
-      const template = parseTemplate(dsl);
+      const templateParts = parseTemplate(dsl);
+      expect(templateParts.length).toEqual(1);
+      const template = templateParts[0];
       expect(template.tagName).toEqual('ul');
       expect(isOptional(template)).not.toEqual(true);
       expect(template.childNodes.length).toEqual(2);
@@ -124,7 +130,9 @@ describe('untemplate', () => {
 
     it('should support nested optionals', () => {
       const dsl = '<section?><div></div><span?></span></section>';
-      const template = parseTemplate(dsl);
+      const templateParts = parseTemplate(dsl);
+      expect(templateParts.length).toEqual(1);
+      const template = templateParts[0];
       expect(template.tagName).toEqual('section');
       expect(isOptional(template)).toEqual(true);
       expect(template.childNodes.length).toEqual(2);
@@ -136,7 +144,9 @@ describe('untemplate', () => {
 
     it('should support shorthand syntax for self-closing nodes', () => {
       const dsl = '<section><img?/></section>';
-      const template = parseTemplate(dsl);
+      const templateParts = parseTemplate(dsl);
+      expect(templateParts.length).toEqual(1);
+      const template = templateParts[0];
       expect(template.tagName).toEqual('section');
       expect(isOptional(template)).not.toEqual(true);
       expect(template.childNodes.length).toEqual(1);
@@ -146,7 +156,9 @@ describe('untemplate', () => {
 
     it('should parse template attributes', () => {
       const dsl = '<div class="1"><a href="2"></a></div>';
-      const template = parseTemplate(dsl);
+      const templateParts = parseTemplate(dsl);
+      expect(templateParts.length).toEqual(1);
+      const template = templateParts[0];
       expect(template.tagName).toEqual('div');
       expect(template.attributes.length).toEqual(1);
       expect(template.attributes[0].name).toEqual('class');
@@ -159,26 +171,54 @@ describe('untemplate', () => {
       expect(template.childNodes[0].attributes[0].value).toEqual('2');
       expect(isOptional(template.childNodes[0])).not.toEqual(true);
     });
+
+    it('should parse multi-part templates', () => {
+      const dsl = '<div></div><div></div>';
+      const templateParts = parseTemplate(dsl);
+      expect(templateParts.length).toEqual(2);
+      const template1 = templateParts[0];
+      expect(template1.tagName).toEqual('div');
+      expect(isOptional(template1)).not.toEqual(true);
+      expect(template1.childNodes.length).toEqual(0);
+      const template2 = templateParts[1];
+      expect(template2.tagName).toEqual('div');
+      expect(isOptional(template2)).not.toEqual(true);
+      expect(template2.childNodes.length).toEqual(0);
+    });
+
+    it('should strip non-elements when parsing multi-part templates', () => {
+      const dsl = '<div></div> this should not <div></div> appear anywhere';
+      const templateParts = parseTemplate(dsl);
+      expect(templateParts.length).toEqual(2);
+      const template1 = templateParts[0];
+      expect(template1.tagName).toEqual('div');
+      expect(isOptional(template1)).not.toEqual(true);
+      expect(template1.childNodes.length).toEqual(0);
+      const template2 = templateParts[1];
+      expect(template2.tagName).toEqual('div');
+      expect(isOptional(template2)).not.toEqual(true);
+      expect(template2.childNodes.length).toEqual(0);
+    });
   });
 
   describe('#getNonEmptyChildren', () => {
     it('should return an empty array when there are no children', () => {
       const html = '<div></div>';
-      const dom = parseHtml(html);
+      const dom = parseHtml(html).firstChild;
       expect(dom.childNodes.length).toEqual(0);
       expect(getNonEmptyChildren(dom)).toEqual([]);
     });
 
     it('should an empty array when all children are empty', () => {
       const html = '<span>   \n\n\n\t\t  </span>';
-      const dom = parseHtml(html);
+      const dom = parseHtml(html).firstChild;
       expect(dom.childNodes.length).toEqual(1);
       expect(getNonEmptyChildren(dom)).toEqual([]);
     });
 
     it('should child nodes when there are some', () => {
       const html = '<ul><li></li><li></li></ul>';
-      const dom = parseHtml(html);
+      const dom = parseHtml(html).firstChild;
       const nonEmptyChildren = getNonEmptyChildren(dom);
       expect(nonEmptyChildren.length).toEqual(2);
       expect(nonEmptyChildren[0].tagName.toLowerCase()).toEqual('li');
@@ -187,7 +227,7 @@ describe('untemplate', () => {
 
     it('should skip over empty text nodes', () => {
       const html = '<ul>\t\n<li></li> \n\n \t\t  \n\n<li></li> \n\n\t \t</ul>';
-      const dom = parseHtml(html);
+      const dom = parseHtml(html).firstChild;
       const nonEmptyChildren = getNonEmptyChildren(dom);
       expect(nonEmptyChildren.length).toEqual(2);
       expect(nonEmptyChildren[0].tagName.toLowerCase()).toEqual('li');
@@ -196,7 +236,7 @@ describe('untemplate', () => {
 
     it('should not skip over nonempty textnodes', () => {
       const html = '<header>nonempty<div></div></header>';
-      const dom = parseHtml(html);
+      const dom = parseHtml(html).firstChild;
       const nonEmptyChildren = getNonEmptyChildren(dom);
       expect(nonEmptyChildren.length).toEqual(2);
       expect(isTextNode(nonEmptyChildren[0])).toEqual(true);
@@ -206,7 +246,7 @@ describe('untemplate', () => {
 
     it('should always skip over comments', () => {
       const html = '<header><!-- comment 1 -->nonempty<div></div></header>';
-      const dom = parseHtml(html);
+      const dom = parseHtml(html).firstChild;
       const nonEmptyChildren = getNonEmptyChildren(dom);
       expect(nonEmptyChildren.length).toEqual(2);
       expect(isTextNode(nonEmptyChildren[0])).toEqual(true);
@@ -249,14 +289,14 @@ describe('untemplate', () => {
   describe('#parseHtml', () => {
     it('should parse nodes with no children', () => {
       const html = '<div></div>';
-      const dom = parseHtml(html);
+      const dom = parseHtml(html).firstChild;
       expect(dom.tagName.toLowerCase()).toEqual('div');
       expect(dom.childNodes.length).toEqual(0);
     });
 
     it('should parse text with a lot of whitespace before/after', () => {
       const html = '   \n\n<span></span>\n   \t\t  ';
-      const dom = parseHtml(html);
+      const dom = parseHtml(html).firstChild;
       expect(dom.tagName.toLowerCase()).toEqual('span');
       expect(dom.childNodes.length).toEqual(0);
     });
@@ -265,21 +305,21 @@ describe('untemplate', () => {
   describe('#isElement', () => {
     it('should correctly identify an element', () => {
       const html = '<div></div>';
-      const dom = parseHtml(html);
+      const dom = parseHtml(html).firstChild;
       const domNodeIsElement = isElement(dom);
       expect(domNodeIsElement).toEqual(true);
     });
 
     it('should correctly reject comments', () => {
       const html = '<!-- comment -->';
-      const dom = parseHtml(html);
+      const dom = parseHtml(html).firstChild;
       const domNodeIsElement = isElement(dom);
       expect(domNodeIsElement).toEqual(false);
     });
 
     it('should correctly reject textnodes', () => {
       const html = '<div> hello </div>';
-      const dom = parseHtml(html).firstChild;
+      const dom = parseHtml(html).firstChild.firstChild;
       const domNodeIsElement = isElement(dom);
       expect(domNodeIsElement).toEqual(false);
     });
@@ -288,21 +328,21 @@ describe('untemplate', () => {
   describe('#isTextNode', () => {
     it('should correctly identify textnodes', () => {
       const html = '<li> world </li>';
-      const dom = parseHtml(html).firstChild;
+      const dom = parseHtml(html).firstChild.firstChild;
       const domNodeIsElement = isTextNode(dom);
       expect(domNodeIsElement).toEqual(true);
     });
 
     it('should correctly reject comments', () => {
       const html = '<!-- comment -->';
-      const dom = parseHtml(html);
+      const dom = parseHtml(html).firstChild;
       const domNodeIsElement = isTextNode(dom);
       expect(domNodeIsElement).toEqual(false);
     });
 
     it('should correctly reject elements', () => {
       const html = '<ul><li></li></ul>';
-      const dom = parseHtml(html);
+      const dom = parseHtml(html).firstChild;
       const domNodeIsElement = isTextNode(dom);
       expect(domNodeIsElement).toEqual(false);
     });
@@ -311,21 +351,21 @@ describe('untemplate', () => {
   describe('#isOptional', () => {
     it('should correctly identify a node with the optional attribute', () => {
       const html = '<section optional="true"></section>';
-      const dom = parseHtml(html);
+      const dom = parseHtml(html).firstChild;
       const domNodeIsElement = isOptional(dom);
       expect(domNodeIsElement).toEqual(true);
     });
 
     it('should correctly reject nodes without the attribute', () => {
       const html = '<p></p>';
-      const dom = parseHtml(html);
+      const dom = parseHtml(html).firstChild;
       const domNodeIsElement = isOptional(dom);
       expect(domNodeIsElement).toEqual(false);
     });
 
     it('should correctly reject nodes without the attribute set to true', () => {
       const html = '<span optional="false"></span>';
-      const dom = parseHtml(html);
+      const dom = parseHtml(html).firstChild;
       const domNodeIsElement = isOptional(dom);
       expect(domNodeIsElement).toEqual(false);
     });
