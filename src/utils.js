@@ -100,6 +100,10 @@ export function getNonEmptyChildren(element: DomNode): DomNode[] {
   });
 }
 
+export function flattenNodes(tags: string[], element: DomNode): DomNode {
+  return element;
+}
+
 // postconditions:
 // - return new tree with same nodes but numbered on the `index` key
 export function number(tree: AnnotatedTree) {

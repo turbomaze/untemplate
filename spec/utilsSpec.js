@@ -3,6 +3,7 @@ import {
   templatesMatch,
   parseTemplate,
   getNonEmptyChildren,
+  flattenNodes,
   number,
   parseHtml,
   isElement,
@@ -368,6 +369,53 @@ describe('untemplate', () => {
       const dom = parseHtml(html).firstChild;
       const domNodeIsElement = isOptional(dom);
       expect(domNodeIsElement).toEqual(false);
+    });
+  });
+
+  describe('#flattenNodes', () => {
+    it('should remove single tags', () => {
+      const html = '<div>hello <b>test</b> there</div>';
+      const dom = parseHtml(html).firstChild;
+      const flattened = flattenNodes(['b'], dom);
+      const expectedHtml = '<div>hello test there</div>';
+      const expectedDom = parseHtml(expectedHtml).firstChild;
+      expect(templatesMatch([dom], [expectedDom])).toEqual(true);
+    });
+
+    it('should not remove single tags if they are not listed', () => {
+      const html = '<div>hello <b>test</b> there</div>';
+      const dom = parseHtml(html).firstChild;
+      const flattened = flattenNodes([], dom);
+      const expectedHtml = '<div>hello <b>test</b> there</div>';
+      const expectedDom = parseHtml(expectedHtml).firstChild;
+      expect(templatesMatch([dom], [expectedDom])).toEqual(true);
+    });
+
+    it('should not remove single tags if they are not terminal', () => {
+      const html = '<div>hello <b>test <i>ing</i></b> there</div>';
+      const dom = parseHtml(html).firstChild;
+      const flattened = flattenNodes(['b'], dom);
+      const expectedHtml = '<div>hello <b>test <i>ing</i></b> there</div>';
+      const expectedDom = parseHtml(expectedHtml).firstChild;
+      expect(templatesMatch([dom], [expectedDom])).toEqual(true);
+    });
+
+    it('should remove single tags in many places', () => {
+      const html = '<div>hello <b>test</b> there <div><b>test</b></div></div>';
+      const dom = parseHtml(html).firstChild;
+      const flattened = flattenNodes(['b'], dom);
+      const expectedHtml = '<div>hello test there <div>test</div></div>';
+      const expectedDom = parseHtml(expectedHtml).firstChild;
+      expect(templatesMatch([dom], [expectedDom])).toEqual(true);
+    });
+
+    it('should be able to remove multiple types of tags', () => {
+      const html = '<div>hello <b>test</b> there <div><a>test</a></div></div>';
+      const dom = parseHtml(html).firstChild;
+      const flattened = flattenNodes(['a', 'b'], dom);
+      const expectedHtml = '<div>hello test there <div>test</div></div>';
+      const expectedDom = parseHtml(expectedHtml).firstChild;
+      expect(templatesMatch([dom], [expectedDom])).toEqual(true);
     });
   });
 });
